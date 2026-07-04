@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Project Parrot STT Benchmark Suite</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #1f2933; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #d8dee4; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f3f5f7; }
+    img { max-width: 1100px; width: 100%; display: block; margin: 12px 0 28px; }
+    .note { color: #52606d; }
+  </style>
+</head>
+<body>
+  <h1>Project Parrot STT Benchmark Suite</h1>
+  <p class="note">Separate dataset reports are in subfolders. This page combines all completed rows.</p>
+  <h2>Combined Wer Normalized</h2><img src="combined_wer_normalized.png" />
+<h2>Combined Cer Normalized</h2><img src="combined_cer_normalized.png" />
+<h2>Combined Rtf</h2><img src="combined_rtf.png" />
+<h2>Combined Load Seconds</h2><img src="combined_load_seconds.png" />
+<h2>Combined Peak Ram Mb</h2><img src="combined_peak_ram_mb.png" />
+  <h2>Combined Summary</h2>
+  <table>
+    <thead><tr><th>Dataset</th><th>Model</th><th>Engine</th><th>Status</th><th>Device</th><th>WER</th><th>CER</th><th>RTF</th><th>Peak RAM MB</th><th>Error</th></tr></thead>
+    <tbody><tr><td>common-voice</td><td>moonshine-small</td><td>Moonshine streaming runtime</td><td>ok</td><td>cpu</td><td>30.50%</td><td>22.53%</td><td>0.23</td><td>1317.49</td><td></td></tr><tr><td>common-voice</td><td>moonshine-medium</td><td>Moonshine streaming runtime</td><td>ok</td><td>cpu</td><td>24.65%</td><td>17.92%</td><td>0.26</td><td>1603.21</td><td></td></tr><tr><td>common-voice</td><td>faster-whisper-small.en</td><td>CTranslate2 via faster-whisper</td><td>ok</td><td>cpu:float32</td><td>16.39%</td><td>10.12%</td><td>0.55</td><td>2766.97</td><td></td></tr><tr><td>common-voice</td><td>faster-whisper-medium.en</td><td>CTranslate2 via faster-whisper</td><td>ok</td><td>cpu:float32</td><td>12.33%</td><td>6.42%</td><td>1.67</td><td>5875.56</td><td></td></tr><tr><td>common-voice</td><td>faster-whisper-large-v3-turbo</td><td>CTranslate2 via faster-whisper</td><td>skipped</td><td></td><td></td><td></td><td></td><td>918.28</td><td>Skipped by default because this model is unsafe when CUDA/cuBLAS is not confirmed. Rerun with --allow-large after CUDA is fixed.</td></tr><tr><td>common-voice</td><td>parakeet-tdt-0.6b-v3-onnx</td><td>ONNX Runtime via onnx-asr</td><td>ok</td><td>cpu:onnxruntime</td><td>7.37%</td><td>3.73%</td><td>0.09</td><td>3432.03</td><td></td></tr><tr><td>librispeech-other</td><td>moonshine-small</td><td>Moonshine streaming runtime</td><td>ok</td><td>cpu</td><td>17.73%</td><td>11.95%</td><td>0.35</td><td>1471.55</td><td></td></tr><tr><td>librispeech-other</td><td>moonshine-medium</td><td>Moonshine streaming runtime</td><td>ok</td><td>cpu</td><td>15.25%</td><td>9.72%</td><td>0.47</td><td>1742.33</td><td></td></tr><tr><td>librispeech-other</td><td>faster-whisper-small.en</td><td>CTranslate2 via faster-whisper</td><td>ok</td><td>cpu:float32</td><td>9.15%</td><td>3.73%</td><td>0.73</td><td>3058.21</td><td></td></tr><tr><td>librispeech-other</td><td>faster-whisper-medium.en</td><td>CTranslate2 via faster-whisper</td><td>ok</td><td>cpu:float32</td><td>7.31%</td><td>2.85%</td><td>1.95</td><td>6798.55</td><td></td></tr><tr><td>librispeech-other</td><td>faster-whisper-large-v3-turbo</td><td>CTranslate2 via faster-whisper</td><td>skipped</td><td></td><td></td><td></td><td></td><td>928.85</td><td>Skipped by default because this model is unsafe when CUDA/cuBLAS is not confirmed. Rerun with --allow-large after CUDA is fixed.</td></tr><tr><td>librispeech-other</td><td>parakeet-tdt-0.6b-v3-onnx</td><td>ONNX Runtime via onnx-asr</td><td>ok</td><td>cpu:onnxruntime</td><td>4.19%</td><td>1.50%</td><td>0.11</td><td>3643.16</td><td></td></tr><tr><td>earnings22</td><td>moonshine-small</td><td>Moonshine streaming runtime</td><td>ok</td><td>cpu</td><td>27.93%</td><td>18.48%</td><td>0.38</td><td>1565.39</td><td></td></tr><tr><td>earnings22</td><td>moonshine-medium</td><td>Moonshine streaming runtime</td><td>ok</td><td>cpu</td><td>25.73%</td><td>17.78%</td><td>0.51</td><td>1842.77</td><td></td></tr><tr><td>earnings22</td><td>faster-whisper-small.en</td><td>CTranslate2 via faster-whisper</td><td>ok</td><td>cpu:float32</td><td>18.16%</td><td>10.98%</td><td>0.59</td><td>2889.33</td><td></td></tr><tr><td>earnings22</td><td>faster-whisper-medium.en</td><td>CTranslate2 via faster-whisper</td><td>ok</td><td>cpu:float32</td><td>17.45%</td><td>10.97%</td><td>1.57</td><td>7085.84</td><td></td></tr><tr><td>earnings22</td><td>faster-whisper-large-v3-turbo</td><td>CTranslate2 via faster-whisper</td><td>skipped</td><td></td><td></td><td></td><td></td><td>1014.77</td><td>Skipped by default because this model is unsafe when CUDA/cuBLAS is not confirmed. Rerun with --allow-large after CUDA is fixed.</td></tr><tr><td>earnings22</td><td>parakeet-tdt-0.6b-v3-onnx</td><td>ONNX Runtime via onnx-asr</td><td>ok</td><td>cpu:onnxruntime</td><td>18.94%</td><td>12.06%</td><td>0.10</td><td>3695.16</td><td></td></tr></tbody>
+  </table>
+</body>
+</html>

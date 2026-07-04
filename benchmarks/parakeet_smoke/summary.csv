@@ -1,0 +1,2 @@
+model,stt,engine,mode,status,device,load_seconds,audio_seconds,transcribe_seconds,rtf,wer_normalized,cer_normalized,peak_ram_mb,error
+parakeet-tdt-0.6b-v3-onnx,NVIDIA Parakeet TDT 0.6B v3,ONNX Runtime via onnx-asr,file/offline,ok,cpu:onnxruntime,4.7215875999536365,5.855,0.84901850001188,0.14500742954942442,0.0,0.0,2724.2578125,

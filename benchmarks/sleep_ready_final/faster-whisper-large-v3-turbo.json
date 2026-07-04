@@ -1,0 +1,12 @@
+{
+  "model": "faster-whisper-large-v3-turbo",
+  "stt": "Whisper large-v3-turbo",
+  "engine": "CTranslate2 via faster-whisper",
+  "mode": "file/offline",
+  "dataset": "hf-internal-testing/librispeech_asr_dummy",
+  "limit": 1,
+  "status": "skipped",
+  "error": "Skipped by default because this model is unsafe when CUDA/cuBLAS is not confirmed. Rerun with --allow-large after CUDA is fixed.",
+  "rows": [],
+  "peak_ram_mb": 267.10546875
+}

@@ -1,0 +1,31 @@
+{
+  "model": "moonshine-small",
+  "stt": "Moonshine Small Streaming",
+  "engine": "Moonshine streaming runtime",
+  "mode": "streaming",
+  "dataset": "hf-internal-testing/librispeech_asr_dummy",
+  "limit": 1,
+  "status": "ok",
+  "error": null,
+  "rows": [
+    {
+      "id": "1272-128104-0000",
+      "duration": 5.855,
+      "seconds": 2.6398297999985516,
+      "rtf": 0.450867600341341,
+      "wer_normalized": 0.058823529411764705,
+      "wer_raw": 1.0,
+      "cer_normalized": 0.0449438202247191,
+      "reference": "MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL",
+      "hypothesis": "Mr. Quilter is the apostle of the middle classes, and we are glad to welcome his gospel."
+    }
+  ],
+  "device": "cpu",
+  "load_seconds": 0.9085510000004433,
+  "audio_seconds": 5.855,
+  "transcribe_seconds": 2.6398297999985516,
+  "rtf": 0.450867600341341,
+  "wer_normalized": 0.058823529411764705,
+  "cer_normalized": 0.0449438202247191,
+  "peak_ram_mb": 729.48046875
+}

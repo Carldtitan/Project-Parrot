@@ -1,0 +1,7 @@
+faster-whisper>=1.1.0
+numpy>=1.26
+requests>=2.32
+pyautogui>=0.9.54
+pyperclip>=1.9.0
+onnx-asr[cpu,hub]>=0.11.0
+onnxruntime>=1.27

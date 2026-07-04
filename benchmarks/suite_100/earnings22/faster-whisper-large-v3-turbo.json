@@ -1,0 +1,16 @@
+{
+  "model": "faster-whisper-large-v3-turbo",
+  "stt": "Whisper large-v3-turbo",
+  "engine": "CTranslate2 via faster-whisper",
+  "mode": "file/offline",
+  "dataset_id": "earnings22",
+  "dataset": "distil-whisper/earnings22",
+  "dataset_config": "chunked",
+  "dataset_split": "test",
+  "dataset_description": "Earnings-22 chunked. Real-world accented professional speech.",
+  "limit": 100,
+  "status": "skipped",
+  "error": "Skipped by default because this model is unsafe when CUDA/cuBLAS is not confirmed. Rerun with --allow-large after CUDA is fixed.",
+  "rows": [],
+  "peak_ram_mb": 1014.765625
+}

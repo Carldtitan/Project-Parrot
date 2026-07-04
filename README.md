@@ -10,7 +10,7 @@ Ctrl+Space push-to-talk
 -> kept-alive local STT worker
 -> Parakeet ONNX CPU by default
 -> faster-whisper small.en CPU fallback
--> strict local Qwen formatter through Ollama
+-> strict local Qwen2.5 3B Instruct formatter through Ollama
 -> clipboard paste into the focused app
 ```
 
@@ -21,7 +21,7 @@ No cloud transcription. No TTS. No voice chat model. No GPU requirement.
 - Rust: desktop shell, hotkey, audio capture, worker lifecycle, paste.
 - Parakeet ONNX: default local speech-to-text through ONNX Runtime CPU.
 - faster-whisper `small.en`: fallback local speech-to-text through CTranslate2 CPU.
-- Qwen via Ollama: strict final text formatter only.
+- Qwen2.5 3B Instruct via Ollama: strict final text formatter only.
 
 ## Streaming Behavior
 
@@ -75,7 +75,9 @@ Useful options:
 .\target\release\project-parrot.exe --ollama-keep-alive -1m
 ```
 
-By default, Qwen is kept loaded in Ollama after warmup.
+By default, Qwen is kept loaded in Ollama after warmup. The Rust app defaults
+to `qwen2.5:3b-instruct`, which was the best latency/quality balance in the
+local Qwen2.5 cleanup benchmark under `benchmarks/cleanup_qwen25_instruct`.
 
 ## Packaging
 

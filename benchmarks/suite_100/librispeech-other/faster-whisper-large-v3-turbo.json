@@ -1,0 +1,16 @@
+{
+  "model": "faster-whisper-large-v3-turbo",
+  "stt": "Whisper large-v3-turbo",
+  "engine": "CTranslate2 via faster-whisper",
+  "mode": "file/offline",
+  "dataset_id": "librispeech-other",
+  "dataset": "openslr/librispeech_asr",
+  "dataset_config": "other",
+  "dataset_split": "test",
+  "dataset_description": "LibriSpeech test.other. Standard harder read-speech ASR benchmark.",
+  "limit": 100,
+  "status": "skipped",
+  "error": "Skipped by default because this model is unsafe when CUDA/cuBLAS is not confirmed. Rerun with --allow-large after CUDA is fixed.",
+  "rows": [],
+  "peak_ram_mb": 928.84765625
+}

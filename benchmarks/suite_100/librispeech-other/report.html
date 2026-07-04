@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Project Parrot STT Benchmark</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #1f2933; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #d8dee4; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f3f5f7; }
+    img { max-width: 920px; width: 100%; display: block; margin: 12px 0 28px; }
+    .note { color: #52606d; }
+  </style>
+</head>
+<body>
+  <h1>Project Parrot STT Benchmark</h1>
+  <p class="note">Dataset: librispeech-other. Lower WER, CER, RTF, load time, and RAM are better.</p>
+  <h2>Wer Bar</h2><img src="wer_bar.png" />
+<h2>Cer Bar</h2><img src="cer_bar.png" />
+<h2>Rtf Bar</h2><img src="rtf_bar.png" />
+<h2>Load Time Bar</h2><img src="load_time_bar.png" />
+<h2>Peak Ram Bar</h2><img src="peak_ram_bar.png" />
+  <h2>Summary</h2>
+  <table>
+    <thead><tr><th>Model</th><th>Engine</th><th>Status</th><th>Device</th><th>WER</th><th>CER</th><th>RTF</th><th>Load s</th><th>Peak RAM MB</th><th>Error</th></tr></thead>
+    <tbody><tr><td>moonshine-small</td><td>Moonshine streaming runtime</td><td>ok</td><td>cpu</td><td>17.73%</td><td>11.95%</td><td>0.35</td><td>0.71</td><td>1471.55</td><td></td></tr><tr><td>moonshine-medium</td><td>Moonshine streaming runtime</td><td>ok</td><td>cpu</td><td>15.25%</td><td>9.72%</td><td>0.47</td><td>1.21</td><td>1742.33</td><td></td></tr><tr><td>faster-whisper-small.en</td><td>CTranslate2 via faster-whisper</td><td>ok</td><td>cpu:float32</td><td>9.15%</td><td>3.73%</td><td>0.73</td><td>1.53</td><td>3058.21</td><td></td></tr><tr><td>faster-whisper-medium.en</td><td>CTranslate2 via faster-whisper</td><td>ok</td><td>cpu:float32</td><td>7.31%</td><td>2.85%</td><td>1.95</td><td>4.90</td><td>6798.55</td><td></td></tr><tr><td>faster-whisper-large-v3-turbo</td><td>CTranslate2 via faster-whisper</td><td>skipped</td><td></td><td></td><td></td><td></td><td></td><td>928.85</td><td>Skipped by default because this model is unsafe when CUDA/cuBLAS is not confirmed. Rerun with --allow-large after CUDA is fixed.</td></tr><tr><td>parakeet-tdt-0.6b-v3-onnx</td><td>ONNX Runtime via onnx-asr</td><td>ok</td><td>cpu:onnxruntime</td><td>4.19%</td><td>1.50%</td><td>0.11</td><td>6.50</td><td>3643.16</td><td></td></tr></tbody>
+  </table>
+</body>
+</html>

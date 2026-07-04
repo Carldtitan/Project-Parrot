@@ -1,0 +1,31 @@
+{
+  "model": "parakeet-tdt-0.6b-v3-onnx",
+  "stt": "NVIDIA Parakeet TDT 0.6B v3",
+  "engine": "ONNX Runtime via onnx-asr",
+  "mode": "file/offline",
+  "dataset": "hf-internal-testing/librispeech_asr_dummy",
+  "limit": 1,
+  "status": "ok",
+  "error": null,
+  "rows": [
+    {
+      "id": "1272-128104-0000",
+      "duration": 5.855,
+      "seconds": 1.7818313000025228,
+      "rtf": 0.30432643894150685,
+      "wer_normalized": 0.0,
+      "wer_raw": 1.0,
+      "cer_normalized": 0.0,
+      "reference": "MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL",
+      "hypothesis": "mister Quilter is the apostle of the middle classes, and we are glad to welcome his gospel."
+    }
+  ],
+  "device": "cpu:onnxruntime",
+  "load_seconds": 5.5948000000207685,
+  "audio_seconds": 5.855,
+  "transcribe_seconds": 1.7818313000025228,
+  "rtf": 0.30432643894150685,
+  "wer_normalized": 0.0,
+  "cer_normalized": 0.0,
+  "peak_ram_mb": 2744.0390625
+}

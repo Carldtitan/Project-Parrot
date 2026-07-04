@@ -1,0 +1,7 @@
+model,stt,engine,mode,status,device,load_seconds,audio_seconds,transcribe_seconds,rtf,wer_normalized,cer_normalized,peak_ram_mb,error
+moonshine-small,Moonshine Small Streaming,Moonshine streaming runtime,streaming,ok,cpu,0.9085510000004433,5.855,2.6398297999985516,0.450867600341341,0.058823529411764705,0.0449438202247191,729.48046875,
+moonshine-medium,Moonshine Medium Streaming,Moonshine streaming runtime,streaming,ok,cpu,1.1105788000277244,5.855,3.409546200011391,0.5823306917184271,0.058823529411764705,0.0449438202247191,1010.8984375,
+faster-whisper-small.en,Whisper small.en,CTranslate2 via faster-whisper,file/offline,ok,cpu:float32,1.354152099986095,5.855,3.0271847000112757,0.5170255678926176,0.058823529411764705,0.0449438202247191,2662.921875,
+faster-whisper-medium.en,Whisper medium.en,CTranslate2 via faster-whisper,file/offline,ok,cpu:float32,4.726291300030425,5.855,8.328127500019036,1.4223958155455227,0.058823529411764705,0.0449438202247191,6009.2109375,
+faster-whisper-large-v3-turbo,Whisper large-v3-turbo,CTranslate2 via faster-whisper,file/offline,skipped,,,,,,,,267.10546875,Skipped by default because this model is unsafe when CUDA/cuBLAS is not confirmed. Rerun with --allow-large after CUDA is fixed.
+parakeet-tdt-0.6b-v3-onnx,NVIDIA Parakeet TDT 0.6B v3,ONNX Runtime via onnx-asr,file/offline,ok,cpu:onnxruntime,5.5948000000207685,5.855,1.7818313000025228,0.30432643894150685,0.0,0.0,2744.0390625,

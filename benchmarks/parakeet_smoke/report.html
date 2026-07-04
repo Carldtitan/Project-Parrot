@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Project Parrot STT Benchmark</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #1f2933; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #d8dee4; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f3f5f7; }
+    img { max-width: 920px; width: 100%; display: block; margin: 12px 0 28px; }
+    .note { color: #52606d; }
+  </style>
+</head>
+<body>
+  <h1>Project Parrot STT Benchmark</h1>
+  <p class="note">Dataset: hf-internal-testing/librispeech_asr_dummy / validation. Lower WER, CER, RTF, load time, and RAM are better.</p>
+  <h2>Wer Bar</h2><img src="wer_bar.png" />
+<h2>Cer Bar</h2><img src="cer_bar.png" />
+<h2>Rtf Bar</h2><img src="rtf_bar.png" />
+<h2>Load Time Bar</h2><img src="load_time_bar.png" />
+<h2>Peak Ram Bar</h2><img src="peak_ram_bar.png" />
+  <h2>Summary</h2>
+  <table>
+    <thead><tr><th>Model</th><th>Engine</th><th>Status</th><th>Device</th><th>WER</th><th>CER</th><th>RTF</th><th>Load s</th><th>Peak RAM MB</th><th>Error</th></tr></thead>
+    <tbody><tr><td>parakeet-tdt-0.6b-v3-onnx</td><td>ONNX Runtime via onnx-asr</td><td>ok</td><td>cpu:onnxruntime</td><td>0.00%</td><td>0.00%</td><td>0.15</td><td>4.72</td><td>2724.26</td><td></td></tr></tbody>
+  </table>
+</body>
+</html>

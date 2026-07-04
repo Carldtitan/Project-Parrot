@@ -3,7 +3,7 @@ mod cleaner;
 mod config;
 mod hotkeys;
 mod inserter;
-mod moonshine;
+mod stt_worker;
 
 use std::{
     io::{self, Write},
@@ -22,7 +22,7 @@ use crate::{
     config::{AppConfig, Args},
     hotkeys::{HotkeyEvent, HotkeyListener},
     inserter::TextInserter,
-    moonshine::MoonshineWorker,
+    stt_worker::SttWorker,
 };
 
 fn main() -> Result<()> {
@@ -34,25 +34,26 @@ fn main() -> Result<()> {
         "Hotkey: hold {}, speak, release Space to paste.",
         config.hotkey_label
     ));
-    log(&format!(
-        "Moonshine STT: {} ({})",
-        config.mode,
-        config.moonshine_model_dir.display()
-    ));
+    log(&format!("STT engine: {}", config.stt_engine));
+    log(&format!("STT threads: {}", config.stt_threads));
     log(&format!("Ollama cleanup model: {}", config.ollama_model));
     log(&format!(
         "Ollama keep_alive: {}",
         config.ollama_keep_alive
     ));
-    log("Live preview: raw Moonshine streaming transcript.");
+    log(&format!(
+        "Live preview: rolling raw STT every {:.1}s over {:.1}s window.",
+        config.update_interval,
+        config.live_window_seconds
+    ));
     log("Final paste: strict local Qwen dictation formatting.");
     log("Quit: Ctrl+C or Ctrl+Alt+Q.");
 
     let started = Instant::now();
-    log("Loading Moonshine model...");
-    let moonshine = MoonshineWorker::start(&config).context("failed to start Moonshine STT")?;
+    log("Loading and warming STT model...");
+    let stt = SttWorker::start(&config).context("failed to start STT")?;
     log(&format!(
-        "Moonshine model ready in {:.1}s.",
+        "STT model ready in {:.1}s.",
         started.elapsed().as_secs_f32()
     ));
 
@@ -82,13 +83,13 @@ fn main() -> Result<()> {
         match event {
             HotkeyEvent::StartRecording => {
                 if !recorder.is_recording() {
-                    moonshine.begin_utterance()?;
+                    stt.begin_utterance()?;
                     let (audio_tx, audio_rx) = mpsc::channel::<Vec<f32>>();
-                    let sink = moonshine.audio_sink();
+                    let sink = stt.audio_sink();
                     audio_forwarder = Some(thread::spawn(move || {
                         for samples in audio_rx {
                             if let Err(error) = sink.send_audio(&samples) {
-                                log(&format!("Moonshine audio stream error: {error:#}"));
+                                log(&format!("STT audio stream error: {error:#}"));
                                 break;
                             }
                         }
@@ -114,7 +115,7 @@ fn main() -> Result<()> {
                 }
 
                 let stt_started = Instant::now();
-                let raw = moonshine.end_utterance()?;
+                let raw = stt.end_utterance()?;
                 log(&format!(
                     "Final raw ({:.1}s): {}",
                     stt_started.elapsed().as_secs_f32(),
@@ -184,5 +185,12 @@ fn chrono_like_time() -> String {
 }
 
 pub fn workspace_root() -> PathBuf {
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            if dir.join("scripts").exists() || dir.join("bin").exists() {
+                return dir.to_path_buf();
+            }
+        }
+    }
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }

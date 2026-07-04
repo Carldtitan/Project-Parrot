@@ -1,0 +1,15 @@
+faster-whisper>=1.1.0
+moonshine-voice==0.0.65
+numpy>=1.26
+datasets>=3.6
+librosa>=0.11
+pyautogui>=0.9.54
+pynput>=1.7.7
+pyperclip>=1.9.0
+requests>=2.32
+jiwer>=4.0
+soundfile>=0.14
+sounddevice>=0.4.7
+onnx-asr[cpu,hub]>=0.11.0
+matplotlib>=3.10
+psutil>=6.1

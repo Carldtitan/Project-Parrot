@@ -8,8 +8,8 @@ Local Wispr Flow-style dictation MVP for Windows.
 Ctrl+Space push-to-talk
 -> Rust global hotkey + microphone capture
 -> kept-alive local STT worker
--> Parakeet ONNX CPU by default
--> faster-whisper small.en CPU fallback
+-> Parakeet Unified CPU by default
+-> Parakeet ONNX / faster-whisper small.en CPU fallbacks
 -> strict local Qwen2.5 3B Instruct formatter through Ollama
 -> clipboard paste into the focused app
 ```
@@ -19,16 +19,17 @@ No cloud transcription. No TTS. No voice chat model. No GPU requirement.
 ## Runtime Roles
 
 - Rust: desktop shell, hotkey, audio capture, worker lifecycle, paste.
-- Parakeet ONNX: default local speech-to-text through ONNX Runtime CPU.
+- Parakeet Unified: default local speech-to-text through NVIDIA NeMo/PyTorch CPU.
+- Parakeet ONNX: fallback local speech-to-text through ONNX Runtime CPU.
 - faster-whisper `small.en`: fallback local speech-to-text through CTranslate2 CPU.
 - Qwen2.5 3B Instruct via Ollama: strict final text formatter only.
 
 ## Streaming Behavior
 
-Parakeet TDT v3 through the current ONNX path is an offline recognizer, not a
-native stateful streaming graph. Project Parrot keeps the model loaded and gives
-a streaming user experience by repeatedly transcribing a rolling window while
-recording.
+Parakeet Unified is the intended streaming-capable Parakeet family path. Project
+Parrot keeps the model loaded at startup. The current worker still uses rolling
+live preview plus a full final pass until the NeMo streaming state API is wired
+directly into the worker.
 
 ```text
 while speaking: rolling live preview over recent audio
@@ -47,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1
 ```
 
 This creates `.venv`, installs app runtime packages, downloads/checks Parakeet
-ONNX and faster-whisper `small.en`, and runs smoke tests.
+Unified, Parakeet ONNX, and faster-whisper `small.en`, and runs smoke tests.
 
 Build the Rust app:
 
@@ -55,23 +56,24 @@ Build the Rust app:
 cargo build --release
 ```
 
-Run default Parakeet mode:
+Run default Unified mode:
 
 ```powershell
-.\target\release\project-parrot.exe --stt parakeet
+.\target\release\project-parrot.exe --stt unified
 ```
 
 Run fallback mode:
 
 ```powershell
+.\target\release\project-parrot.exe --stt parakeet
 .\target\release\project-parrot.exe --stt small-en
 ```
 
 Useful options:
 
 ```powershell
-.\target\release\project-parrot.exe --stt parakeet --update-interval 0.7 --live-window-seconds 8
-.\target\release\project-parrot.exe --stt parakeet --stt-threads 6
+.\target\release\project-parrot.exe --stt unified --update-interval 0.7 --live-window-seconds 8
+.\target\release\project-parrot.exe --stt unified --stt-threads 6
 .\target\release\project-parrot.exe --ollama-model qwen2.5:3b-instruct
 .\target\release\project-parrot.exe --ollama-keep-alive -1m
 ```

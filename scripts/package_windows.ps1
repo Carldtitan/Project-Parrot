@@ -52,9 +52,10 @@ First run on a new machine:
   ollama pull $FormatterModel
 
 Run:
-  project-parrot.exe --stt parakeet --ollama-model $FormatterModel
+  project-parrot.exe --stt unified --ollama-model $FormatterModel
 
 Fallback:
+  project-parrot.exe --stt parakeet --ollama-model $FormatterModel
   project-parrot.exe --stt small-en --ollama-model $FormatterModel
 "@ | Set-Content -Path (Join-Path $PackageDir "RUN.txt") -Encoding UTF8
 

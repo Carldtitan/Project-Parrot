@@ -34,4 +34,4 @@ if ($InstalledOllamaModels -notmatch [Regex]::Escape($FormatterModel)) {
 Write-Host ""
 Write-Host "Setup complete."
 Write-Host "Run:"
-Write-Host "  cargo run --release -- --stt parakeet --ollama-model $FormatterModel"
+Write-Host "  cargo run --release -- --stt unified --ollama-model $FormatterModel"

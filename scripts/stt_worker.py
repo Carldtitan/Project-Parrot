@@ -1,14 +1,18 @@
 import argparse
 import base64
 import json
+import tempfile
 import struct
 import sys
 import time
 import traceback
+import wave
+from pathlib import Path
 
 import numpy as np
 
 
+UNIFIED_MODEL_ID = "nvidia/parakeet-unified-en-0.6b"
 PARAKEET_MODEL_ID = "nemo-parakeet-tdt-0.6b-v3"
 WHISPER_FALLBACK_MODEL_ID = "small.en"
 
@@ -40,6 +44,16 @@ def load_parakeet(threads):
     return model
 
 
+def load_unified(_threads):
+    import torch
+    from nemo.collections.asr.models import ASRModel
+
+    torch.set_grad_enabled(False)
+    model = ASRModel.from_pretrained(UNIFIED_MODEL_ID, map_location="cpu")
+    model.eval()
+    return model
+
+
 def load_faster_whisper_small(threads):
     from faster_whisper import WhisperModel
 
@@ -49,6 +63,45 @@ def load_faster_whisper_small(threads):
         compute_type="float32",
         cpu_threads=max(1, threads),
     )
+
+
+def write_temp_wav(audio, sample_rate):
+    audio = np.asarray(audio, dtype=np.float32)
+    audio = np.clip(audio, -1.0, 1.0)
+    pcm = (audio * 32767.0).astype(np.int16)
+    handle = tempfile.NamedTemporaryFile(prefix="parrot-unified-", suffix=".wav", delete=False)
+    path = Path(handle.name)
+    handle.close()
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(pcm.tobytes())
+    return path
+
+
+def normalize_nemo_output(result):
+    if isinstance(result, str):
+        return result.strip()
+    if isinstance(result, list):
+        if not result:
+            return ""
+        return normalize_nemo_output(result[0])
+    if hasattr(result, "text"):
+        return str(result.text).strip()
+    return str(result).strip()
+
+
+def transcribe_unified(model, audio, sample_rate):
+    path = write_temp_wav(audio, sample_rate)
+    try:
+        result = model.transcribe([str(path)], batch_size=1)
+        return normalize_nemo_output(result)
+    finally:
+        try:
+            path.unlink()
+        except OSError:
+            pass
 
 
 def transcribe_parakeet(model, audio, sample_rate):
@@ -72,6 +125,8 @@ def transcribe_faster_whisper(model, audio, sample_rate):
 def transcribe(engine, model, audio, sample_rate):
     if len(audio) == 0:
         return ""
+    if engine == "unified":
+        return transcribe_unified(model, audio, sample_rate)
     if engine == "parakeet":
         return transcribe_parakeet(model, audio, sample_rate)
     if engine == "small-en":
@@ -88,7 +143,7 @@ def live_window(buffer, sample_rate, max_seconds):
 
 def main():
     parser = argparse.ArgumentParser(description="Project Parrot kept-alive STT worker")
-    parser.add_argument("--engine", choices=["parakeet", "small-en"], default="parakeet")
+    parser.add_argument("--engine", choices=["unified", "parakeet", "small-en"], default="unified")
     parser.add_argument("--threads", type=int, default=8)
     parser.add_argument("--update-interval", type=float, default=0.7)
     parser.add_argument("--live-window-seconds", type=float, default=8.0)
@@ -97,7 +152,11 @@ def main():
     sample_rate = 16000
     started = time.perf_counter()
     try:
-        if args.engine == "parakeet":
+        if args.engine == "unified":
+            model = load_unified(args.threads)
+            model_name = UNIFIED_MODEL_ID
+            runtime = "nemo-pytorch-cpu"
+        elif args.engine == "parakeet":
             model = load_parakeet(args.threads)
             model_name = PARAKEET_MODEL_ID
             runtime = "onnxruntime-cpu"

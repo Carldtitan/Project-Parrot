@@ -15,7 +15,7 @@ pub struct Args {
     #[arg(long, default_value_t = default_threads())]
     pub stt_threads: usize,
 
-    #[arg(long, default_value = "qwen2.5:3b")]
+    #[arg(long, default_value = "qwen2.5:3b-instruct")]
     pub ollama_model: String,
 
     #[arg(

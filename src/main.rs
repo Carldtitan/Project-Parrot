@@ -84,7 +84,7 @@ fn main() -> Result<()> {
             HotkeyEvent::StartRecording => {
                 if !recorder.is_recording() {
                     stt.begin_utterance()?;
-                    let (audio_tx, audio_rx) = mpsc::channel::<Vec<f32>>();
+                    let (audio_tx, audio_rx) = mpsc::sync_channel::<Vec<f32>>(2);
                     let sink = stt.audio_sink();
                     audio_forwarder = Some(thread::spawn(move || {
                         for samples in audio_rx {
@@ -115,7 +115,7 @@ fn main() -> Result<()> {
                 }
 
                 let stt_started = Instant::now();
-                let raw = stt.end_utterance()?;
+                let raw = stt.end_utterance(&audio)?;
                 log(&format!(
                     "Final raw ({:.1}s): {}",
                     stt_started.elapsed().as_secs_f32(),

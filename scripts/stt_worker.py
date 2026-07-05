@@ -1,6 +1,10 @@
 import argparse
 import base64
+import contextlib
+import io
 import json
+import logging
+import os
 import tempfile
 import struct
 import sys
@@ -16,9 +20,20 @@ UNIFIED_MODEL_ID = "nvidia/parakeet-unified-en-0.6b"
 PARAKEET_MODEL_ID = "nemo-parakeet-tdt-0.6b-v3"
 WHISPER_FALLBACK_MODEL_ID = "small.en"
 
+os.environ.setdefault("NEMO_LOG_LEVEL", "ERROR")
+os.environ.setdefault("TQDM_DISABLE", "1")
+logging.getLogger("nemo_logger").setLevel(logging.ERROR)
+logging.getLogger("nemo").setLevel(logging.ERROR)
+
 
 def emit(payload):
     print(json.dumps(payload, ensure_ascii=True), flush=True)
+
+
+@contextlib.contextmanager
+def suppress_library_output():
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        yield
 
 
 def decode_f32le(payload):
@@ -45,12 +60,19 @@ def load_parakeet(threads):
 
 
 def load_unified(_threads):
-    import torch
-    from nemo.collections.asr.models import ASRModel
+    with suppress_library_output():
+        import torch
+        from omegaconf import OmegaConf
+        from nemo.utils import logging as nemo_logging
+        from nemo.collections.asr.models import ASRModel
 
-    torch.set_grad_enabled(False)
-    model = ASRModel.from_pretrained(UNIFIED_MODEL_ID, map_location="cpu")
-    model.eval()
+        nemo_logging.setLevel(logging.ERROR)
+        torch.set_grad_enabled(False)
+        model = ASRModel.from_pretrained(UNIFIED_MODEL_ID, map_location="cpu")
+        model.eval()
+        if model.cfg.get("validation_ds") is None:
+            OmegaConf.set_struct(model.cfg, False)
+            model.cfg.validation_ds = OmegaConf.create({"use_start_end_token": False})
     return model
 
 
@@ -80,6 +102,66 @@ def write_temp_wav(audio, sample_rate):
     return path
 
 
+def normalize_audio(audio):
+    audio = np.asarray(audio, dtype=np.float32)
+    if audio.size == 0:
+        return audio
+    audio = audio - float(np.mean(audio))
+    peak = float(np.max(np.abs(audio)))
+    if peak > 0.98:
+        audio = audio / peak * 0.98
+    rms = float(np.sqrt(np.mean(audio * audio)))
+    target_rms = 0.06
+    if 0.001 < rms < target_rms:
+        audio = audio * min(target_rms / rms, 8.0)
+    return np.clip(audio, -1.0, 1.0).astype(np.float32)
+
+
+def is_probably_silence(audio):
+    audio = np.asarray(audio, dtype=np.float32)
+    if audio.size == 0:
+        return True
+    peak = float(np.max(np.abs(audio)))
+    rms = float(np.sqrt(np.mean(audio * audio)))
+    return peak < 0.006 or rms < 0.0015
+
+
+def trim_silence(audio, sample_rate):
+    audio = np.asarray(audio, dtype=np.float32)
+    if audio.size == 0:
+        return audio
+
+    frame = max(1, int(sample_rate * 0.02))
+    hop = max(1, int(sample_rate * 0.01))
+    if audio.size <= frame:
+        return audio
+
+    rms_values = []
+    starts = []
+    for start in range(0, audio.size - frame + 1, hop):
+        chunk = audio[start : start + frame]
+        rms_values.append(float(np.sqrt(np.mean(chunk * chunk))))
+        starts.append(start)
+
+    if not rms_values:
+        return audio
+
+    noise_floor = float(np.percentile(rms_values, 20))
+    threshold = max(0.008, noise_floor * 2.5)
+    voiced = [idx for idx, rms in enumerate(rms_values) if rms >= threshold]
+    if not voiced:
+        return np.asarray([], dtype=np.float32)
+
+    pad = int(sample_rate * 0.12)
+    first = max(0, starts[voiced[0]] - pad)
+    last = min(audio.size, starts[voiced[-1]] + frame + pad)
+    return audio[first:last]
+
+
+def prepare_final_audio(audio, sample_rate):
+    return normalize_audio(trim_silence(audio, sample_rate))
+
+
 def normalize_nemo_output(result):
     if isinstance(result, str):
         return result.strip()
@@ -95,7 +177,8 @@ def normalize_nemo_output(result):
 def transcribe_unified(model, audio, sample_rate):
     path = write_temp_wav(audio, sample_rate)
     try:
-        result = model.transcribe([str(path)], batch_size=1)
+        with suppress_library_output():
+            result = model.transcribe([str(path)], batch_size=1, verbose=False)
         return normalize_nemo_output(result)
     finally:
         try:
@@ -125,6 +208,8 @@ def transcribe_faster_whisper(model, audio, sample_rate):
 def transcribe(engine, model, audio, sample_rate):
     if len(audio) == 0:
         return ""
+    if is_probably_silence(audio):
+        return ""
     if engine == "unified":
         return transcribe_unified(model, audio, sample_rate)
     if engine == "parakeet":
@@ -143,7 +228,7 @@ def live_window(buffer, sample_rate, max_seconds):
 
 def main():
     parser = argparse.ArgumentParser(description="Project Parrot kept-alive STT worker")
-    parser.add_argument("--engine", choices=["unified", "parakeet", "small-en"], default="unified")
+    parser.add_argument("--engine", choices=["unified", "parakeet", "small-en"], default="small-en")
     parser.add_argument("--threads", type=int, default=8)
     parser.add_argument("--update-interval", type=float, default=0.7)
     parser.add_argument("--live-window-seconds", type=float, default=8.0)
@@ -225,7 +310,12 @@ def main():
 
                 elif message_type == "stop":
                     recording = False
-                    audio = np.asarray(buffer, dtype=np.float32)
+                    if "samples" in message:
+                        sample_rate = int(message.get("sample_rate", sample_rate))
+                        audio = np.asarray(decode_f32le(message["samples"]), dtype=np.float32)
+                    else:
+                        audio = np.asarray(buffer, dtype=np.float32)
+                    audio = prepare_final_audio(audio, sample_rate)
                     final_started = time.perf_counter()
                     text = transcribe(args.engine, model, audio, sample_rate)
                     latency_ms = int((time.perf_counter() - final_started) * 1000)

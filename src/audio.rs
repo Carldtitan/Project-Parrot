@@ -1,4 +1,4 @@
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::sync::{mpsc::SyncSender, Arc, Mutex};
 
 use anyhow::{anyhow, Context, Result};
 use cpal::{
@@ -25,11 +25,11 @@ impl Recorder {
         self.stream.is_some()
     }
 
-    pub fn start_with_sender(&mut self, sample_tx: Sender<Vec<f32>>) -> Result<()> {
+    pub fn start_with_sender(&mut self, sample_tx: SyncSender<Vec<f32>>) -> Result<()> {
         self.start_with_stream(Some(sample_tx))
     }
 
-    fn start_with_stream(&mut self, sample_tx: Option<Sender<Vec<f32>>>) -> Result<()> {
+    fn start_with_stream(&mut self, sample_tx: Option<SyncSender<Vec<f32>>>) -> Result<()> {
         if self.stream.is_some() {
             return Ok(());
         }
@@ -139,7 +139,7 @@ fn push_samples(
     input_sample_rate: u32,
     target_sample_rate: u32,
     frames: &Arc<Mutex<Vec<f32>>>,
-    sample_tx: Option<&Sender<Vec<f32>>>,
+    sample_tx: Option<&SyncSender<Vec<f32>>>,
 ) {
     let mono = to_mono(input, channels);
     let resampled = if input_sample_rate == target_sample_rate {
@@ -152,7 +152,7 @@ fn push_samples(
         .expect("audio frames mutex poisoned")
         .extend_from_slice(&resampled);
     if let Some(sample_tx) = sample_tx {
-        let _ = sample_tx.send(resampled);
+        let _ = sample_tx.try_send(resampled);
     }
 }
 

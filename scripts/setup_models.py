@@ -77,12 +77,12 @@ def setup_small_en(threads: int) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Download Project Parrot local STT models")
     parser.add_argument("--threads", type=int, default=8)
-    parser.add_argument("--skip-unified", action="store_true")
+    parser.add_argument("--include-unified", action="store_true")
     parser.add_argument("--skip-parakeet", action="store_true")
     parser.add_argument("--skip-small-en", action="store_true")
     args = parser.parse_args()
 
-    if not args.skip_unified:
+    if args.include_unified:
         setup_unified()
     if not args.skip_parakeet:
         setup_parakeet(args.threads)

@@ -7,7 +7,7 @@ pub struct Args {
     #[arg(
         long,
         value_parser = ["unified", "parakeet", "small-en"],
-        default_value = "unified",
+        default_value = "small-en",
         help = "Local CPU STT engine. unified is NVIDIA Parakeet Unified; parakeet is ONNX fallback; small-en is faster-whisper fallback."
     )]
     pub stt: String,

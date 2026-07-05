@@ -10,7 +10,7 @@ use std::{
     path::PathBuf,
     sync::mpsc,
     thread,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result};
@@ -86,11 +86,20 @@ fn main() -> Result<()> {
                     stt.begin_utterance()?;
                     let (audio_tx, audio_rx) = mpsc::sync_channel::<Vec<f32>>(2);
                     let sink = stt.audio_sink();
+                    let live_send_interval =
+                        Duration::from_secs_f32(config.update_interval.max(0.25));
                     audio_forwarder = Some(thread::spawn(move || {
+                        let mut pending = Vec::new();
+                        let mut last_sent = Instant::now() - live_send_interval;
                         for samples in audio_rx {
-                            if let Err(error) = sink.send_audio(&samples) {
-                                log(&format!("STT audio stream error: {error:#}"));
-                                break;
+                            pending.extend_from_slice(&samples);
+                            if last_sent.elapsed() >= live_send_interval {
+                                if let Err(error) = sink.send_audio(&pending) {
+                                    log(&format!("STT audio stream error: {error:#}"));
+                                    break;
+                                }
+                                pending.clear();
+                                last_sent = Instant::now();
                             }
                         }
                     }));

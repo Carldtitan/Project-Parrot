@@ -27,14 +27,14 @@ pub struct Args {
 
     #[arg(
         long,
-        default_value_t = 0.7,
+        default_value_t = 1.0,
         help = "Seconds between live preview STT passes while recording."
     )]
     pub update_interval: f32,
 
     #[arg(
         long,
-        default_value_t = 8.0,
+        default_value_t = 2.0,
         help = "Seconds of recent audio used for live preview. Final paste uses full utterance."
     )]
     pub live_window_seconds: f32,

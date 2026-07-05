@@ -1,0 +1,49 @@
+{
+  "summary": [
+    {
+      "model": "qwen2.5:0.5b-instruct",
+      "cases": 24,
+      "mean_latency_seconds": 0.40512943924999995,
+      "p50_latency_seconds": 0.2989674579999999,
+      "p95_latency_seconds": 1.6024772499999997,
+      "mean_quality_score": 0.7884192498961373,
+      "mean_expected_similarity": 0.7942495517476358,
+      "content_guard_pass_rate": 0.6666666666666666,
+      "mean_eval_tokens_per_second": 142.6498898245076
+    },
+    {
+      "model": "qwen2.5:1.5b-instruct",
+      "cases": 24,
+      "mean_latency_seconds": 0.4284309740833339,
+      "p50_latency_seconds": 0.4429659589999986,
+      "p95_latency_seconds": 0.5372936250000002,
+      "mean_quality_score": 0.8898936644769854,
+      "mean_expected_similarity": 0.936670658682551,
+      "content_guard_pass_rate": 0.75,
+      "mean_eval_tokens_per_second": 82.3413832137376
+    },
+    {
+      "model": "qwen2.5:3b-instruct",
+      "cases": 24,
+      "mean_latency_seconds": 0.7465040816249999,
+      "p50_latency_seconds": 0.7638197919999996,
+      "p95_latency_seconds": 0.9554726249999987,
+      "mean_quality_score": 0.9195146989628508,
+      "mean_expected_similarity": 0.9459585930835749,
+      "content_guard_pass_rate": 0.8333333333333334,
+      "mean_eval_tokens_per_second": 42.74509392199588
+    },
+    {
+      "model": "qwen2.5:7b-instruct",
+      "cases": 24,
+      "mean_latency_seconds": 1.4957431267916654,
+      "p50_latency_seconds": 1.5468775000000008,
+      "p95_latency_seconds": 1.9033462089999986,
+      "mean_quality_score": 0.9242959937518672,
+      "mean_expected_similarity": 0.9492952600706449,
+      "content_guard_pass_rate": 0.8333333333333334,
+      "mean_eval_tokens_per_second": 20.490988720445333
+    }
+  ],
+  "errors": []
+}

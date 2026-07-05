@@ -9,7 +9,7 @@ Ctrl+Space push-to-talk
 -> Rust global hotkey + microphone capture
 -> kept-alive local STT worker
 -> faster-whisper small.en CPU by default
--> Parakeet ONNX / Parakeet Unified optional CPU modes
+-> Parakeet ONNX optional CPU mode
 -> strict local Qwen2.5 3B Instruct formatter through Ollama
 -> clipboard paste into the focused app
 ```
@@ -21,7 +21,6 @@ No cloud transcription. No TTS. No voice chat model. No GPU requirement.
 - Rust: desktop shell, hotkey, audio capture, worker lifecycle, paste.
 - faster-whisper `small.en`: default local speech-to-text through CTranslate2 CPU.
 - Parakeet ONNX: fallback local speech-to-text through ONNX Runtime CPU.
-- Parakeet Unified: optional local speech-to-text through NVIDIA NeMo/PyTorch CPU.
 - Qwen2.5 3B Instruct via Ollama: strict final text formatter only.
 
 ## Streaming Behavior
@@ -49,12 +48,6 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1
 This creates `.venv`, installs app runtime packages, downloads/checks Parakeet
 ONNX and faster-whisper `small.en`, and runs smoke tests.
 
-Optional heavy Unified setup:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1 -IncludeUnified
-```
-
 Build the Rust app:
 
 ```powershell
@@ -71,7 +64,6 @@ Run other modes:
 
 ```powershell
 .\target\release\project-parrot.exe --stt parakeet
-.\target\release\project-parrot.exe --stt unified
 ```
 
 Useful options:

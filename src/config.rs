@@ -6,9 +6,9 @@ use clap::Parser;
 pub struct Args {
     #[arg(
         long,
-        value_parser = ["unified", "parakeet", "small-en"],
+        value_parser = ["parakeet", "small-en"],
         default_value = "small-en",
-        help = "Local CPU STT engine. unified is NVIDIA Parakeet Unified; parakeet is ONNX fallback; small-en is faster-whisper fallback."
+        help = "Local CPU STT engine. small-en is faster-whisper default; parakeet is ONNX fallback."
     )]
     pub stt: String,
 

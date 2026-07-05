@@ -1,7 +1,6 @@
 param(
     [int]$Threads = [Math]::Max(1, [Environment]::ProcessorCount - 2),
-    [string]$FormatterModel = "qwen2.5:3b-instruct",
-    [switch]$IncludeUnified
+    [string]$FormatterModel = "qwen2.5:3b-instruct"
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,12 +32,7 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 $Python = Join-Path $Root ".venv\Scripts\python.exe"
 Invoke-Checked $Python -m pip install --upgrade pip
 Invoke-Checked $Python -m pip install -r requirements-app.txt
-if ($IncludeUnified) {
-    Invoke-Checked $Python -m pip install -r requirements-unified.txt
-    Invoke-Checked $Python scripts\setup_models.py --threads $Threads --include-unified
-} else {
-    Invoke-Checked $Python scripts\setup_models.py --threads $Threads
-}
+Invoke-Checked $Python scripts\setup_models.py --threads $Threads
 
 if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
     throw "Ollama is required for strict local formatting. Install Ollama, then rerun this script."
@@ -55,6 +49,3 @@ Write-Host ""
 Write-Host "Setup complete."
 Write-Host "Run:"
 Write-Host "  cargo run --release -- --ollama-model $FormatterModel"
-Write-Host ""
-Write-Host "Optional heavy accuracy mode:"
-Write-Host "  cargo run --release -- --stt unified --ollama-model $FormatterModel"

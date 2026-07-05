@@ -1,5 +1,6 @@
 param(
-    [int]$Threads = [Math]::Max(1, [Environment]::ProcessorCount - 2)
+    [int]$Threads = [Math]::Max(1, [Environment]::ProcessorCount - 2),
+    [string]$FormatterModel = "qwen2.5:3b-instruct"
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,7 +20,18 @@ $Python = Join-Path $Root ".venv\Scripts\python.exe"
 & $Python -m pip install -r requirements-app.txt
 & $Python scripts\setup_models.py --threads $Threads
 
+if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
+    throw "Ollama is required for strict local formatting. Install Ollama, then rerun this script."
+}
+
+$InstalledOllamaModels = ollama list
+if ($InstalledOllamaModels -notmatch [Regex]::Escape($FormatterModel)) {
+    Write-Host ""
+    Write-Host "Pulling formatter model: $FormatterModel"
+    ollama pull $FormatterModel
+}
+
 Write-Host ""
 Write-Host "Setup complete."
 Write-Host "Run:"
-Write-Host "  cargo run --release -- --stt parakeet"
+Write-Host "  cargo run --release -- --stt parakeet --ollama-model $FormatterModel"

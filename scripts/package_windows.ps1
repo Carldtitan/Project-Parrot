@@ -1,13 +1,14 @@
 param(
     [switch]$SkipWorkerExe,
-    [int]$Threads = [Math]::Max(1, [Environment]::ProcessorCount - 2)
+    [int]$Threads = [Math]::Max(1, [Environment]::ProcessorCount - 2),
+    [string]$FormatterModel = "qwen2.5:3b-instruct"
 )
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
-powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1 -Threads $Threads
+powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1 -Threads $Threads -FormatterModel $FormatterModel
 cargo build --release
 
 $PackageDir = Join-Path $Root "dist\ProjectParrot"
@@ -48,12 +49,13 @@ First run on a new machine:
   python -m venv .venv
   .venv\Scripts\python.exe -m pip install -r requirements-app.txt
   .venv\Scripts\python.exe scripts\setup_models.py
+  ollama pull $FormatterModel
 
 Run:
-  project-parrot.exe --stt parakeet
+  project-parrot.exe --stt parakeet --ollama-model $FormatterModel
 
 Fallback:
-  project-parrot.exe --stt small-en
+  project-parrot.exe --stt small-en --ollama-model $FormatterModel
 "@ | Set-Content -Path (Join-Path $PackageDir "RUN.txt") -Encoding UTF8
 
 Write-Host "Package written to $PackageDir"

@@ -8,8 +8,8 @@ Local Wispr Flow-style dictation MVP for Windows.
 Ctrl+Space push-to-talk
 -> Rust global hotkey + microphone capture
 -> kept-alive local STT worker
--> Parakeet Unified CPU by default
--> Parakeet ONNX / faster-whisper small.en CPU fallbacks
+-> faster-whisper small.en CPU by default
+-> Parakeet ONNX / Parakeet Unified optional CPU modes
 -> strict local Qwen2.5 3B Instruct formatter through Ollama
 -> clipboard paste into the focused app
 ```
@@ -19,21 +19,20 @@ No cloud transcription. No TTS. No voice chat model. No GPU requirement.
 ## Runtime Roles
 
 - Rust: desktop shell, hotkey, audio capture, worker lifecycle, paste.
-- Parakeet Unified: default local speech-to-text through NVIDIA NeMo/PyTorch CPU.
+- faster-whisper `small.en`: default local speech-to-text through CTranslate2 CPU.
 - Parakeet ONNX: fallback local speech-to-text through ONNX Runtime CPU.
-- faster-whisper `small.en`: fallback local speech-to-text through CTranslate2 CPU.
+- Parakeet Unified: optional local speech-to-text through NVIDIA NeMo/PyTorch CPU.
 - Qwen2.5 3B Instruct via Ollama: strict final text formatter only.
 
 ## Streaming Behavior
 
-Parakeet Unified is the intended streaming-capable Parakeet family path. Project
-Parrot keeps the model loaded at startup. The current worker still uses rolling
-live preview plus a full final pass until the NeMo streaming state API is wired
-directly into the worker.
+Project Parrot keeps the selected STT model loaded at startup. The worker streams
+microphone audio into a rolling live preview while recording, then runs a final
+full-utterance pass on release.
 
 ```text
 while speaking: rolling live preview over recent audio
-on release: final full-utterance STT pass
+on release: final full-utterance STT pass with audio cleanup
 after final: strict Qwen formatting and paste
 ```
 
@@ -48,7 +47,13 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1
 ```
 
 This creates `.venv`, installs app runtime packages, downloads/checks Parakeet
-Unified, Parakeet ONNX, and faster-whisper `small.en`, and runs smoke tests.
+ONNX and faster-whisper `small.en`, and runs smoke tests.
+
+Optional heavy Unified setup:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1 -IncludeUnified
+```
 
 Build the Rust app:
 
@@ -56,24 +61,24 @@ Build the Rust app:
 cargo build --release
 ```
 
-Run default Unified mode:
+Run default mode:
 
 ```powershell
-.\target\release\project-parrot.exe --stt unified
+.\target\release\project-parrot.exe
 ```
 
-Run fallback mode:
+Run other modes:
 
 ```powershell
 .\target\release\project-parrot.exe --stt parakeet
-.\target\release\project-parrot.exe --stt small-en
+.\target\release\project-parrot.exe --stt unified
 ```
 
 Useful options:
 
 ```powershell
-.\target\release\project-parrot.exe --stt unified --update-interval 0.7 --live-window-seconds 8
-.\target\release\project-parrot.exe --stt unified --stt-threads 6
+.\target\release\project-parrot.exe --update-interval 0.7 --live-window-seconds 8
+.\target\release\project-parrot.exe --stt-threads 6
 .\target\release\project-parrot.exe --ollama-model qwen2.5:3b-instruct
 .\target\release\project-parrot.exe --ollama-keep-alive -1m
 ```

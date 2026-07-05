@@ -195,8 +195,16 @@ impl SttWorker {
         }
     }
 
-    pub fn end_utterance(&self) -> Result<String> {
-        self.send_json(json!({ "type": "stop" }))?;
+    pub fn end_utterance(&self, samples: &[f32]) -> Result<String> {
+        let mut bytes = Vec::with_capacity(samples.len() * 4);
+        for sample in samples {
+            bytes.extend_from_slice(&sample.to_le_bytes());
+        }
+        self.send_json(json!({
+            "type": "stop",
+            "sample_rate": self.sample_rate,
+            "samples": STANDARD.encode(bytes),
+        }))?;
         loop {
             match self.events.recv_timeout(Duration::from_secs(60)) {
                 Ok(WorkerEvent::Final(text)) => return Ok(text),

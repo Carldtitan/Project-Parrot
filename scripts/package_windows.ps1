@@ -23,6 +23,7 @@ Copy-Item target\release\project-parrot.exe $PackageDir
 Copy-Item scripts\stt_worker.py (Join-Path $PackageDir "scripts")
 Copy-Item scripts\setup_models.py (Join-Path $PackageDir "scripts")
 Copy-Item requirements-app.txt $PackageDir
+Copy-Item requirements-unified.txt $PackageDir
 Copy-Item README.md $PackageDir
 
 if (-not $SkipWorkerExe) {
@@ -52,11 +53,11 @@ First run on a new machine:
   ollama pull $FormatterModel
 
 Run:
-  project-parrot.exe --stt unified --ollama-model $FormatterModel
+  project-parrot.exe --ollama-model $FormatterModel
 
-Fallback:
+Other modes:
   project-parrot.exe --stt parakeet --ollama-model $FormatterModel
-  project-parrot.exe --stt small-en --ollama-model $FormatterModel
+  project-parrot.exe --stt unified --ollama-model $FormatterModel
 "@ | Set-Content -Path (Join-Path $PackageDir "RUN.txt") -Encoding UTF8
 
 Write-Host "Package written to $PackageDir"

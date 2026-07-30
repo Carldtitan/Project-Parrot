@@ -1,9 +1,11 @@
 import unittest
 
 from scripts.benchmark_cleanup import (
+    apply_known_recognition_repairs,
+    constrain_formatter_output,
     ensure_basic_formatting,
-    preserves_content,
     reconcile_candidate,
+    same_word_sequence,
 )
 
 
@@ -25,22 +27,22 @@ class ReconcileCandidateTests(unittest.TestCase):
             "Linnell's pictures are a sort of up guards and atom paintings, "
             "and Mason's exquisite idols are as national as a jingo poem.",
         )
-        self.assertTrue(preserves_content(original, reconciled))
+        self.assertTrue(same_word_sequence(original, reconciled))
 
-    def test_preserves_contextual_recognition_repairs(self):
+    def test_qwen_cannot_make_contextual_recognition_repairs(self):
         self.assertEqual(
             reconcile_candidate(
                 "we check the result and return a final blow",
                 "We check the result and return a final grade.",
             ),
-            "We check the result and return a final grade.",
+            "We check the result and return a final blow.",
         )
         self.assertEqual(
             reconcile_candidate(
                 "dictations for beginners true advanced",
                 "Dictations for beginners through advanced students.",
             ),
-            "Dictations for beginners through advanced students.",
+            "Dictations for beginners true advanced.",
         )
 
     def test_restores_dropped_and_invented_content_in_source_order(self):
@@ -52,6 +54,32 @@ class ReconcileCandidateTests(unittest.TestCase):
         self.assertEqual(
             reconciled,
             "I actually think we should keep every word because it matters.",
+        )
+
+    def test_known_recognition_repairs_are_deterministic(self):
+        self.assertEqual(
+            apply_known_recognition_repairs(
+                "we correct your dictation and return a final blow"
+            ),
+            "we correct your dictation and return a final grade",
+        )
+        self.assertEqual(
+            apply_known_recognition_repairs("the boxer delivered the final blow"),
+            "the boxer delivered the final blow",
+        )
+
+    def test_ordinary_speech_is_not_turned_into_a_list(self):
+        source = (
+            "it is buggy and qwen does too much and the final words hardly get captured"
+        )
+        candidate = (
+            "It is buggy.\n\n1. And Qwen does too much.\n"
+            "2. And the final words hardly get captured."
+        )
+        self.assertEqual(
+            constrain_formatter_output(source, candidate),
+            "It is buggy. And Qwen does too much. "
+            "And the final words hardly get captured.",
         )
 
 

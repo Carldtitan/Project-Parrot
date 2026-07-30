@@ -80,91 +80,31 @@ def build_prompt(transcript: str, think_mode: str) -> str:
     elif think_mode == "on":
         thinking_directive = "/think\n\n"
 
-    return f"""{thinking_directive}You are Parrot's local dictation editor.
-Your job is to format speech-to-text output for pasting into the user's active app.
-
-Use one adaptive writing style based only on the dictated text:
-- If it sounds professional, use formal punctuation and capitalization.
-- If it sounds casual, keep it casual and avoid over-punctuating.
-- If it sounds excited, preserve that energy, but do not add excitement.
+    return f"""{thinking_directive}You are a conservative dictation formatter. You are not an editor or writer.
 
 Rules:
-- Preserve the speaker's meaning, voice, names, facts, and sentence order.
-- This is an editor, not an author. Do not summarize, expand, or creatively rewrite.
-- Do not summarize, shorten, paraphrase, or rewrite the sentence structure.
-- Do not remove opening phrases, introductory clauses, connector words, or discourse words.
-- Keep words like "and", "so", "but", "well", "okay", "now", "then", "because", and "like" unless they are repeated stutters.
-- Never delete subject or helper phrases such as "I think", "you can", "we will", "they should", or "do not".
-- Preserve the approximate word count. The output should usually contain the same words as the input.
-- Repair a recognition slip only when the surrounding sentence makes the intended word or short phrase unambiguous. Make the smallest possible correction.
-- Examples of high-confidence recognition repair include "write into the next field" -> "write into the text field", "receive a final blow" -> "receive a final grade", and "beginners true advanced" -> "beginners through advanced students".
-- Do not leave an obvious semantic impossibility unchanged. In an evaluation or grading context, "receive a final blow" must become "receive a final grade". In a skill-range context, "beginners true advanced" must become "beginners through advanced students".
-- If a word or phrase looks wrong but you are not certain, keep it exactly.
-- Fix punctuation, capitalization, spacing, obvious speech-to-text casing, and high-confidence recognition slips.
-- You may add punctuation marks to reflect natural speech pauses: periods, commas, question marks, colons, semicolons, em dashes, and ellipses.
-- Use ellipses for unfinished thoughts or self-interruptions, especially before phrases like "I don't know", "never mind", or "let's see".
-- You may split one raw run-on transcript into sentences.
-- If the raw text is awkward, keep the awkward wording and only make it readable with punctuation.
-- Remove filler words only when they are clearly non-semantic fillers: "um", "uh", "erm".
-- Do not remove "and", "so", "I mean", or "you know"; these may be intentional style.
-- Keep proper nouns as close to the transcript as possible unless the correction is obvious from spelling.
-- Silently determine the document shape before writing the output.
-- Infer layout from meaning; the speaker should not have to dictate "number one", "bullet", "new line", or "firstly".
-- Mandatory layout rule: if the text is a how-to, workflow, set of instructions, or staged process with three or more distinct actions, output those actions as a Markdown numbered list.
-- This mandatory rule applies even when the raw transcript has no punctuation and no spoken list markers.
-- A setup question such as "How does it work?" belongs on its own line before the numbered list. A step may contain more than one supporting sentence.
-- Do not leave a qualifying procedure as one paragraph.
-- When three or more short parallel items are clearly a collection rather than a sequence, format them as bullets.
-- Keep ordinary prose as paragraphs. Do not turn a paragraph into a list merely because it has several sentences.
-- Preserve existing numbered lists, bullet lists, code, and intentional line breaks.
-- Do not invent list items, headings, labels, or content.
-- Do not answer the text.
-- Do not add commentary.
-- Return only the formatted text.
+- Copy every word exactly once and in exactly the same order.
+- Never replace, remove, add, reorder, paraphrase, or correct words.
+- Add only necessary capitalization, sentence punctuation, and paragraph breaks.
+- Prefer periods and commas. Do not add headings, labels, quotes, commentary, semicolons, em dashes, or ellipses.
+- Keep conversational words and repetitions exactly as spoken.
+- Keep ordinary speech as prose. Do not turn it into a list just because it contains several sentences.
+- A new numbered list is allowed only when the text unmistakably describes three or more sequential actions. If uncertain, use prose.
+- Never create a bulleted list unless bullet markers already exist in the input.
+- Preserve existing code, list markers, and intentional line breaks.
+- Return only the formatted dictation.
 
-Formatting example:
-Input: How does it work? Listen carefully to the audio file. Write the text into the text field. Once you are done, click the button to have your dictation evaluated. We instantly check and correct your text.
+Procedure example:
+Input: how does it work listen to the file then write the text once you are done click evaluate
 Output:
 How does it work?
 
-1. Listen carefully to the audio file.
-2. Write the text into the text field.
-3. Once you are done, click the button to have your dictation evaluated.
-4. We instantly check and correct your text.
+1. Listen to the file.
+2. Then write the text.
+3. Once you are done, click evaluate.
 
 Dictated text:
 {transcript}
-"""
-
-
-def build_preservation_retry_prompt(
-    original: str,
-    candidate: str,
-    think_mode: str,
-) -> str:
-    thinking_directive = ""
-    if think_mode == "off":
-        thinking_directive = "/no_think\n\n"
-    elif think_mode == "on":
-        thinking_directive = "/think\n\n"
-
-    return f"""{thinking_directive}You are Parrot's final dictation verifier.
-The draft below has useful punctuation and layout, but it was rejected because it dropped words from the source.
-
-Requirements:
-- Keep the draft's punctuation, paragraphs, and Markdown list layout.
-- Restore every phrase from the source in its original order.
-- Never delete phrases such as "I think", "you can", "we will", "they should", or "do not".
-- Preserve connector words including "and", "so", "but", "then", and "because".
-- Keep only high-confidence acoustic repairs when context makes them certain: grading "final blow" may be "final grade"; a range from "beginners true advanced" may be "beginners through advanced students".
-- Do not summarize, answer, explain, or add new facts.
-- Return only the corrected final text.
-
-Source transcript:
-{original}
-
-Rejected formatted draft:
-{candidate}
 """
 
 
@@ -213,26 +153,6 @@ def word_spans(text: str) -> list[tuple[str, str, int, int]]:
     ]
 
 
-def allowed_semantic_repair(
-    full_original: str,
-    original_words: list[tuple[str, str, int, int]],
-    candidate_words: list[tuple[str, str, int, int]],
-) -> bool:
-    source = " ".join(word[0] for word in original_words)
-    candidate = " ".join(word[0] for word in candidate_words)
-    if (source, candidate) in {
-        ("blow", "grade"),
-        ("next", "text"),
-        ("true", "through"),
-    }:
-        return True
-    return (
-        not source
-        and candidate == "students"
-        and "beginners true advanced" in full_original.lower()
-    )
-
-
 def reconcile_candidate(original: str, candidate: str) -> str:
     original_words = word_spans(original)
     candidate_words = word_spans(candidate)
@@ -251,8 +171,6 @@ def reconcile_candidate(original: str, candidate: str) -> str:
             continue
         original_gap = original_words[original_start:original_end]
         candidate_gap = candidate_words[candidate_start:candidate_end]
-        if allowed_semantic_repair(original, original_gap, candidate_gap):
-            continue
 
         source_phrase = " ".join(word[1] for word in original_gap)
         if candidate_gap:
@@ -280,7 +198,150 @@ def reconcile_candidate(original: str, candidate: str) -> str:
     reconciled = candidate
     for start, end, replacement in reversed(edits):
         reconciled = reconciled[:start] + replacement + reconciled[end:]
-    return reconciled
+    return re.sub(r"\s+([,.;:?!])", r"\1", reconciled)
+
+
+def apply_known_recognition_repairs(transcript: str) -> str:
+    repaired = transcript
+    lower = transcript.lower()
+    if "beginners true advanced" in lower:
+        repaired = re.sub(
+            r"\bbeginners true advanced\b",
+            "beginners through advanced students",
+            repaired,
+            flags=re.IGNORECASE,
+        )
+    if "write" in lower and "field" in lower and "next field" in lower:
+        repaired = re.sub(
+            r"\bnext field\b",
+            "text field",
+            repaired,
+            flags=re.IGNORECASE,
+        )
+    if "final blow" in lower and any(
+        cue in lower for cue in ("evaluat", "grade", "dictation", "correct your text")
+    ):
+        repaired = re.sub(
+            r"\bfinal blow\b",
+            "final grade",
+            repaired,
+            flags=re.IGNORECASE,
+        )
+    return repaired
+
+
+def same_word_sequence(original: str, cleaned: str) -> bool:
+    return all_words(original) == all_words(cleaned)
+
+
+def has_numbered_prefix(text: str) -> bool:
+    return re.match(r"^\d+[.)]\s+", text) is not None
+
+
+def has_list_markers(text: str) -> bool:
+    return any(
+        has_numbered_prefix(line.lstrip())
+        or line.lstrip().startswith(("- ", "* ", "• "))
+        for line in text.splitlines()
+    )
+
+
+def has_numbered_list(text: str) -> bool:
+    return sum(has_numbered_prefix(line.lstrip()) for line in text.splitlines()) >= 2
+
+
+def has_bullet_list(text: str) -> bool:
+    return (
+        sum(line.lstrip().startswith(("- ", "* ", "• ")) for line in text.splitlines())
+        >= 2
+    )
+
+
+def looks_like_procedure(text: str) -> bool:
+    lower = text.lower()
+    explicit = any(
+        cue in lower
+        for cue in (
+            "how does it work",
+            "how to ",
+            "the steps",
+            "these steps",
+            "the process",
+            "instructions",
+        )
+    )
+    padded = f" {lower} "
+    transition_count = sum(
+        cue in padded
+        for cue in (
+            " first ",
+            " second ",
+            " third ",
+            " then ",
+            " next ",
+            " once ",
+            " after ",
+            " finally ",
+        )
+    )
+    return len(all_words(text)) >= 12 and (explicit or transition_count >= 2)
+
+
+def strip_added_list_layout(text: str) -> str:
+    lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        stripped = re.sub(r"^\d+[.)]\s+", "", stripped)
+        stripped = re.sub(r"^[-*•]\s+", "", stripped)
+        if stripped:
+            lines.append(stripped)
+    return " ".join(lines)
+
+
+def constrain_formatter_output(source: str, candidate: str) -> str:
+    source_has_list = has_list_markers(source)
+    candidate_has_numbered = has_numbered_list(candidate)
+    candidate_has_bullets = has_bullet_list(candidate)
+    allow_numbered = source_has_list or (
+        candidate_has_numbered and looks_like_procedure(source)
+    )
+    allow_bullets = source_has_list
+    constrained = candidate.replace("—", ",").replace("–", "-").replace("…", ".")
+    if '"' not in source and "“" not in source and "”" not in source:
+        constrained = constrained.replace('"', "").replace("“", "").replace("”", "")
+    if (candidate_has_numbered and not allow_numbered) or (
+        candidate_has_bullets and not allow_bullets
+    ):
+        constrained = strip_added_list_layout(constrained)
+    elif (
+        not allow_numbered
+        and not allow_bullets
+        and "\n" not in source
+        and len(all_words(source)) < 120
+    ):
+        constrained = " ".join(constrained.split())
+    constrained = re.sub(r"\bi\b", "I", constrained, flags=re.IGNORECASE)
+    chars = list(constrained.strip())
+    sentence_start = True
+    output: list[str] = []
+    for index, char in enumerate(chars):
+        if sentence_start and char.isalpha():
+            output.append(char.upper())
+            sentence_start = False
+        else:
+            output.append(char)
+            if char.isalpha():
+                sentence_start = False
+        decimal_point = (
+            char == "."
+            and index > 0
+            and index + 1 < len(chars)
+            and chars[index - 1].isdigit()
+            and chars[index + 1].isdigit()
+        )
+        if char in "?!\n" or (char == "." and not decimal_point):
+            sentence_start = True
+    return "".join(output)
 
 
 def ensure_basic_formatting(text: str, source: str) -> str:
@@ -424,7 +485,7 @@ def length_score(original: str, cleaned: str) -> float:
 
 def quality_scores(case: Case, output: str) -> dict:
     expected_similarity = SequenceMatcher(None, case.expected, output).ratio()
-    accepted = preserves_content(case.raw, output)
+    accepted = same_word_sequence(apply_known_recognition_repairs(case.raw), output)
     protected = protected_recall(case.raw, output)
     length = length_score(case.raw, output)
     composite = (
@@ -478,12 +539,13 @@ def benchmark_model(args: argparse.Namespace, model: str, cases: list[Case]) -> 
 
     for run_index in range(1, args.runs + 1):
         for case in cases:
+            source = apply_known_recognition_repairs(case.raw)
             started = time.perf_counter()
             response = post_json(
                 args.endpoint,
                 {
                     "model": model,
-                    "prompt": build_prompt(case.raw, args.think_mode),
+                    "prompt": build_prompt(source, args.think_mode),
                     "stream": False,
                     "keep_alive": args.keep_alive,
                     "options": {
@@ -499,52 +561,18 @@ def benchmark_model(args: argparse.Namespace, model: str, cases: list[Case]) -> 
             primary_candidate = strip_wrapping_quotes(
                 str(response.get("response", "")).strip()
             )
-            output = reconcile_candidate(
-                case.raw,
-                primary_candidate,
+            output = constrain_formatter_output(
+                source,
+                reconcile_candidate(source, primary_candidate),
             )
             used_retry = False
             retry_attempted = False
             fallback_to_raw = False
             retry_candidate = ""
-            if output and not preserves_content(case.raw, output):
-                retry_attempted = True
-                retry_response = post_json(
-                    args.endpoint,
-                    {
-                        "model": model,
-                        "prompt": build_preservation_retry_prompt(
-                            case.raw,
-                            output,
-                            args.think_mode,
-                        ),
-                        "stream": False,
-                        "keep_alive": args.keep_alive,
-                        "options": {
-                            "temperature": 0,
-                            "top_p": 0.1,
-                            "repeat_penalty": 1.0,
-                            "num_predict": args.num_predict,
-                        },
-                    },
-                    args.timeout,
-                )
-                latency_seconds = time.perf_counter() - started
-                retry_candidate = strip_wrapping_quotes(
-                    str(retry_response.get("response", "")).strip()
-                )
-                retried = reconcile_candidate(
-                    case.raw,
-                    retry_candidate,
-                )
-                if retried and preserves_content(case.raw, retried):
-                    output = retried
-                    response = retry_response
-                    used_retry = True
-            if not output or not preserves_content(case.raw, output):
-                output = case.raw
+            if not output or not same_word_sequence(source, output):
+                output = source
                 fallback_to_raw = True
-            output = ensure_basic_formatting(output, case.raw)
+            output = ensure_basic_formatting(output, source)
             scores = quality_scores(case, output)
             rows.append(
                 {

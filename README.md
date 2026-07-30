@@ -23,7 +23,8 @@ desktop shell.
 The product work includes:
 
 - rolling live transcription that preserves earlier words during long speech;
-- full-utterance recognition before the final paste;
+- lossless microphone buffering when live recognition falls behind;
+- silence-aligned, overlapping final recognition for long dictations;
 - global push-to-talk and hands-free dictation;
 - configurable keyboard and side-mouse shortcuts;
 - instant cancel plus recover, copy, or re-paste from local history;
@@ -122,6 +123,7 @@ cargo test --locked
 npm test
 npm run test:e2e
 npm run verify:live-stt
+npm run verify:long-stt
 python -m unittest scripts.test_stt_worker
 python -m compileall -q parrot scripts
 ```
@@ -129,6 +131,8 @@ python -m compileall -q parrot scripts
 `verify:live-stt` streams a known clean speech sample through the same kept-alive
 worker protocol used during dictation. It fails unless Parrot produces live
 partials and a final transcript below the configured word-error threshold.
+`verify:long-stt` runs a full minute at real microphone speed with the desktop
+app's production live-window settings and gates both live and final coverage.
 
 ## Package and release
 

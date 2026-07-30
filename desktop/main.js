@@ -136,9 +136,15 @@ function applyLoginSetting() {
 
 function createTrayIcon() {
   const image = nativeImage.createFromPath(
-    path.join(__dirname, "assets", "brand", "parrot-app-icon.png"),
+    path.join(__dirname, "assets", "brand", "parrot-tray-icon-16.png"),
   );
-  return image.resize({ width: 16, height: 16 });
+  image.addRepresentation({
+    scaleFactor: 2,
+    buffer: fs.readFileSync(
+      path.join(__dirname, "assets", "brand", "parrot-tray-icon-32.png"),
+    ),
+  });
+  return image;
 }
 
 function createMainWindow() {

@@ -41,14 +41,24 @@ node scripts\render_brand_icon.cjs .build\icon.png 256
 
 The renderer uses a fixed 10.5% inset and a 22.5% app-tile corner radius. It is
 deterministic and is called automatically by `scripts/package_desktop.ps1`.
-The committed 512 px `parrot-app-icon.png` is the tray source and can be
-regenerated with the same script.
+The committed 512 px `parrot-app-icon.png` is the large application reference
+and can be regenerated with the same script.
+
+Tray icons use an optical crop rather than shrinking the roomy application
+tile. The 16 px and 32 px sources keep the bird close to the pixel boundary and
+are combined as 1× and 2× representations at runtime:
+
+```powershell
+node scripts\render_brand_icon.cjs desktop\assets\brand\parrot-tray-icon-16.png 16 --optical
+node scripts\render_brand_icon.cjs desktop\assets\brand\parrot-tray-icon-32.png 32 --optical
+```
 
 ## Clear space and size
 
 Keep clear space equal to the eye diameter around the standalone mark. Do not
-render the full-color mark smaller than 16 px. At 16–20 px, pair it with the
-pale app tile so the body and tail remain distinct.
+render the standard full-color mark smaller than 24 px. At 16–20 px, use only
+the optical tray crop with its pale app tile so the body and tail remain
+distinct.
 
 ## Wordmark
 

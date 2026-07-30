@@ -6,6 +6,7 @@ from scripts.stt_worker import (
     FINAL_TRAILING_PADDING_SECONDS,
     FINAL_DIRECT_PASS_SECONDS,
     FINAL_TAIL_RESCUE_MIN_SECONDS,
+    collapse_live_duplicate,
     merge_rolling_transcript,
     merge_final_segments,
     prepare_final_audio,
@@ -95,6 +96,27 @@ class MergeRollingTranscriptTests(unittest.TestCase):
             merged,
             "Mister Carker used to flash his teeth And Mr John Collier "
             "gives his sitter a cheerful slap on the back before he says next man",
+        )
+
+    def test_collapses_a_revised_clause_duplicated_inside_live_output(self):
+        duplicated = (
+            "Mister Carker used to flash his teeth. And Mr. John Collier gives "
+            "his sitter a cheerful slap And mister John Audio gives His sitter "
+            "a cheerful slap on the back before he says next man."
+        )
+
+        self.assertEqual(
+            collapse_live_duplicate(duplicated),
+            "Mister Carker used to flash his teeth. And Mr. John Collier gives "
+            "his sitter a cheerful slap on the back before he says next man.",
+        )
+
+    def test_keeps_short_intentional_repetition(self):
+        self.assertEqual(
+            collapse_live_duplicate(
+                "this is very very important and I really really mean it"
+            ),
+            "this is very very important and I really really mean it",
         )
 
 
@@ -289,3 +311,4 @@ class RecoverLiveTailTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+    collapse_live_duplicate,

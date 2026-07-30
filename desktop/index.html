@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; script-src 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Parrot</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="main-page" data-state="starting">
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">P</span>
+          <div>
+            <strong>Parrot</strong>
+            <span>Private voice typing</span>
+          </div>
+        </div>
+        <button id="hide-button" class="icon-button" type="button" aria-label="Hide Parrot">
+          &minus;
+        </button>
+      </header>
+
+      <section class="listening-stage" aria-live="polite">
+        <div class="status-row">
+          <span id="status-dot" class="status-dot starting"></span>
+          <span id="status-label">Starting</span>
+          <span id="running-badge" class="privacy-badge">ON DEVICE</span>
+        </div>
+
+        <div id="waveform" class="waveform" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+
+        <h1 id="stage-title">Getting Parrot ready</h1>
+        <p id="status-message">Loading the speech model for the first time…</p>
+
+        <div class="shortcut" aria-label="Hold Control and Space to dictate">
+          <span>Hold</span>
+          <kbd>Ctrl</kbd>
+          <span>+</span>
+          <kbd>Space</kbd>
+          <span>to talk</span>
+        </div>
+      </section>
+
+      <section class="transcript-panel" aria-labelledby="transcript-heading">
+        <header>
+          <div>
+            <span class="section-kicker">LIVE TRANSCRIPT</span>
+            <h2 id="transcript-heading">What Parrot hears</h2>
+          </div>
+          <button id="copy-button" class="quiet-button" type="button" disabled>
+            Copy
+          </button>
+        </header>
+        <p id="live-transcript" class="live-transcript empty">
+          Your words will appear here as you speak.
+        </p>
+        <p id="transcript-hint" class="transcript-hint">
+          Release Space and Parrot pastes the finished text into your active app.
+        </p>
+      </section>
+
+      <details class="preferences">
+        <summary>
+          <span>
+            <strong>Preferences</strong>
+            <small>Speech model, startup, and formatting</small>
+          </span>
+          <span class="summary-chevron" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="preferences-body">
+          <label class="field">
+            <span>Speech model</span>
+            <select id="stt-engine">
+              <option value="parakeet">Parakeet — recommended</option>
+              <option value="small-en">faster-whisper small.en</option>
+            </select>
+          </label>
+
+          <label class="toggle-row">
+            <span>
+              <strong>Launch at sign in</strong>
+              <small>Keep Parrot ready in the tray.</small>
+            </span>
+            <input id="launch-at-login" type="checkbox" />
+            <i aria-hidden="true"></i>
+          </label>
+
+          <details class="advanced-settings">
+            <summary>Advanced</summary>
+            <label class="field">
+              <span>Formatter model</span>
+              <input
+                id="ollama-model"
+                type="text"
+                value="qwen2.5:3b-instruct"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <small>Optional. Parrot still transcribes when Ollama is unavailable.</small>
+            </label>
+            <label class="field compact-field">
+              <span>CPU threads</span>
+              <input id="stt-threads" type="number" min="0" max="64" value="0" />
+              <small>Use 0 to choose automatically.</small>
+            </label>
+            <div class="advanced-actions">
+              <button id="setup-button" class="secondary-button" type="button">
+                Install formatter
+              </button>
+              <button id="ollama-button" class="link-button" type="button">
+                Get Ollama
+              </button>
+            </div>
+          </details>
+
+          <div class="settings-actions">
+            <button id="save-button" class="primary-button" type="button">
+              Save changes
+            </button>
+            <button id="restart-button" class="secondary-button" type="button">
+              Restart engine
+            </button>
+          </div>
+          <p id="form-message" class="form-message" role="status"></p>
+        </div>
+      </details>
+
+      <details class="diagnostics">
+        <summary>Diagnostics</summary>
+        <div id="log" class="log" aria-label="Recent application events"></div>
+      </details>
+
+      <footer>
+        <span>Closing Parrot keeps it ready in the tray.</span>
+        <button id="quit-button" class="quit-button" type="button">Quit</button>
+      </footer>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

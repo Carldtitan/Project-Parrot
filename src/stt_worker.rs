@@ -14,7 +14,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{config::AppConfig, log, workspace_root};
+use crate::{config::AppConfig, emit_partial, log, workspace_root};
 
 pub struct SttWorker {
     child: Child,
@@ -50,6 +50,8 @@ enum WorkerMessage {
     Final {
         text: String,
         latency_ms: Option<u32>,
+        #[serde(default)]
+        used_live_fallback: bool,
     },
     #[serde(rename = "error")]
     Error { message: String },
@@ -77,7 +79,10 @@ impl SttWorker {
             if !script.exists() {
                 bail!("missing STT worker script: {}", script.display());
             }
-            let local_python = workspace_root().join(".venv").join("Scripts").join("python.exe");
+            let local_python = workspace_root()
+                .join(".venv")
+                .join("Scripts")
+                .join("python.exe");
             let mut command = if local_python.exists() {
                 Command::new(local_python)
             } else {
@@ -137,15 +142,23 @@ impl SttWorker {
                         let _ = tx.send(WorkerEvent::Started);
                     }
                     Ok(WorkerMessage::Partial { text, latency_ms }) => {
+                        emit_partial(&text);
                         if let Some(latency_ms) = latency_ms {
                             log(&format!("Live raw ({latency_ms}ms): {text}"));
                         } else {
                             log(&format!("Live raw: {text}"));
                         }
                     }
-                    Ok(WorkerMessage::Final { text, latency_ms }) => {
+                    Ok(WorkerMessage::Final {
+                        text,
+                        latency_ms,
+                        used_live_fallback,
+                    }) => {
                         if let Some(latency_ms) = latency_ms {
                             log(&format!("Final STT latency: {latency_ms}ms"));
+                        }
+                        if used_live_fallback {
+                            log("Final STT was empty; using the recognized live transcript.");
                         }
                         let _ = tx.send(WorkerEvent::Final(text));
                     }

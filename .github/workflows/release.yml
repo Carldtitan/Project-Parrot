@@ -50,7 +50,7 @@ jobs:
           cargo test --locked
           npm test
           npm run test:e2e
-          python -m unittest scripts.test_stt_worker
+          python -m unittest scripts.test_stt_worker scripts.test_cleanup_pipeline
           python -m compileall -q parrot scripts
 
       - name: Build Windows installer

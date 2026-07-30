@@ -4,11 +4,13 @@ import numpy as np
 
 from scripts.stt_worker import (
     FINAL_TRAILING_PADDING_SECONDS,
+    FINAL_DIRECT_PASS_SECONDS,
     merge_rolling_transcript,
     merge_final_segments,
     prepare_final_audio,
     recover_live_tail,
     split_final_audio,
+    transcribe_final,
 )
 
 
@@ -67,6 +69,34 @@ class MergeRollingTranscriptTests(unittest.TestCase):
 
 
 class SplitFinalAudioTests(unittest.TestCase):
+    def test_ordinary_long_dictation_uses_one_context_preserving_pass(self):
+        sample_rate = 100
+        timeline = np.arange(
+            int(sample_rate * (FINAL_DIRECT_PASS_SECONDS - 1)),
+            dtype=np.float32,
+        )
+        audio = np.sin(timeline * 0.2).astype(np.float32)
+
+        class FakeParakeet:
+            def __init__(self):
+                self.calls = 0
+
+            def recognize(self, samples, sample_rate):
+                self.calls += 1
+                return "complete transcript"
+
+        model = FakeParakeet()
+        text, chunk_count = transcribe_final(
+            "parakeet",
+            model,
+            audio,
+            sample_rate,
+        )
+
+        self.assertEqual(text, "complete transcript")
+        self.assertEqual(chunk_count, 1)
+        self.assertEqual(model.calls, 1)
+
     def test_long_audio_is_fully_covered_by_overlapping_chunks(self):
         sample_rate = 100
         audio = np.arange(sample_rate * 61, dtype=np.float32)
@@ -121,6 +151,33 @@ class SplitFinalAudioTests(unittest.TestCase):
 
         self.assertIn("first section keeps every important word", merged)
         self.assertIn("alpha beta gamma delta", merged)
+
+    def test_final_merge_keeps_words_missing_from_the_newer_overlap(self):
+        previous = (
+            "Mister Burkett Foster smiles and Mister Carker used to flash his teeth"
+        )
+        current = (
+            "Mister Carker used and Mister John Collier gives his sitter a cheerful slap"
+        )
+
+        merged = merge_final_segments(previous, current)
+
+        self.assertEqual(
+            merged,
+            "Mister Burkett Foster smiles and Mister Carker used to flash his teeth "
+            "and Mister John Collier gives his sitter a cheerful slap",
+        )
+
+    def test_final_merge_uses_a_close_newer_boundary_word_once(self):
+        merged = merge_final_segments(
+            "Parrot makes voice timing simple and grate",
+            "voice timing simple and great for everyone",
+        )
+
+        self.assertEqual(
+            merged,
+            "Parrot makes voice timing simple and great for everyone",
+        )
 
 
 class RecoverLiveTailTests(unittest.TestCase):

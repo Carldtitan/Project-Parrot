@@ -14,6 +14,7 @@ import numpy as np
 PARAKEET_MODEL_ID = "nemo-parakeet-tdt-0.6b-v3"
 WHISPER_FALLBACK_MODEL_ID = "small.en"
 FINAL_TRAILING_PADDING_SECONDS = 0.35
+FINAL_DIRECT_PASS_SECONDS = 90.0
 FINAL_CHUNK_SECONDS = 18.0
 FINAL_CHUNK_OVERLAP_SECONDS = 1.5
 FINAL_SPLIT_SEARCH_SECONDS = 2.0
@@ -214,6 +215,15 @@ def split_final_audio(
 
 
 def transcribe_final(engine, model, audio, sample_rate):
+    # Parakeet is more accurate when it can use the complete discourse context
+    # for ordinary dictations. The exact one-minute quality fixture reaches
+    # near-perfect coverage as a single pass but loses a phrase when divided at
+    # an unlucky acoustic boundary. Reserve segmentation for genuinely long
+    # recordings that approach the model's practical context limit.
+    if len(audio) <= int(sample_rate * FINAL_DIRECT_PASS_SECONDS):
+        prepared = normalize_audio(audio)
+        return transcribe(engine, model, prepared, sample_rate).strip(), 1
+
     chunks = split_final_audio(audio, sample_rate)
     merged = ""
     segment_padding = np.zeros(
@@ -294,7 +304,7 @@ def merge_rolling_transcript(previous, current):
 
 
 def merge_final_segments(previous, current):
-    """Join final overlapping chunks without replacing an unbounded old tail."""
+    """Join final overlapping chunks without discarding unmatched old words."""
     previous = str(previous or "").strip()
     current = str(current or "").strip()
     if not previous:
@@ -312,29 +322,56 @@ def merge_final_segments(previous, current):
         if previous_keys[-overlap:] == current_keys[:overlap]:
             return " ".join(previous_words[:-overlap] + current_words)
 
-    # Parakeet can revise a word inside the overlap. Limit fuzzy anchoring to
-    # the last/first 16 words so a common phrase cannot erase older dictation.
-    previous_tail_start = max(0, len(previous_keys) - 16)
-    current_head_end = min(len(current_keys), 16)
-    matcher = SequenceMatcher(
-        None,
-        previous_keys[previous_tail_start:],
-        current_keys[:current_head_end],
-        autojunk=False,
-    )
-    candidates = [
-        block
-        for block in matcher.get_matching_blocks()
-        if block.size >= 2
-        and block.a + block.size >= len(previous_keys) - previous_tail_start - 8
-        and block.b <= 8
-    ]
-    if candidates:
-        anchor = max(candidates, key=lambda block: (block.size, block.a, -block.b))
-        previous_anchor = previous_tail_start + anchor.a
-        return " ".join(
-            previous_words[:previous_anchor] + current_words[anchor.b:]
+    # Parakeet can revise one word inside the overlap. Find a strong contiguous
+    # boundary anchor, collapse that shared phrase to the newer spelling, and
+    # retain both unmatched tails. Deliberately ignore isolated later matches
+    # such as "his" or "the"; treating them as anchors can reorder text.
+    boundary_words = 24
+    previous_tail_start = max(0, len(previous_keys) - boundary_words)
+    current_head_end = min(len(current_keys), boundary_words)
+    previous_tail = previous_keys[previous_tail_start:]
+    current_head = current_keys[:current_head_end]
+
+    def equivalent(left, right):
+        if left == right:
+            return True
+        if min(len(left), len(right)) < 4:
+            return False
+        return SequenceMatcher(None, left, right, autojunk=False).ratio() >= 0.78
+
+    anchors = []
+    for previous_index in range(len(previous_tail)):
+        for current_index in range(min(9, len(current_head))):
+            length = 0
+            while (
+                previous_index + length < len(previous_tail)
+                and current_index + length < len(current_head)
+                and equivalent(
+                    previous_tail[previous_index + length],
+                    current_head[current_index + length],
+                )
+            ):
+                length += 1
+            if (
+                length >= 2
+                and len(previous_tail) - previous_index - length <= 8
+            ):
+                anchors.append((length, previous_index, current_index))
+
+    if anchors:
+        length, previous_index, current_index = max(
+            anchors,
+            key=lambda anchor: (anchor[0], anchor[1], -anchor[2]),
         )
+        merged = previous_words[: previous_tail_start + previous_index]
+        merged.extend(
+            current_words[current_index : current_index + length]
+        )
+        merged.extend(
+            previous_words[previous_tail_start + previous_index + length :]
+        )
+        merged.extend(current_words[current_index + length :])
+        return " ".join(merged)
 
     return f"{previous} {current}".strip()
 

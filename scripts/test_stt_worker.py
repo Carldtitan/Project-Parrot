@@ -5,6 +5,7 @@ import numpy as np
 from scripts.stt_worker import (
     FINAL_TRAILING_PADDING_SECONDS,
     FINAL_DIRECT_PASS_SECONDS,
+    FINAL_TAIL_RESCUE_MIN_SECONDS,
     merge_rolling_transcript,
     merge_final_segments,
     prepare_final_audio,
@@ -86,7 +87,7 @@ class SplitFinalAudioTests(unittest.TestCase):
                 return "complete transcript"
 
         model = FakeParakeet()
-        text, chunk_count = transcribe_final(
+        text, chunk_count, used_tail_rescue = transcribe_final(
             "parakeet",
             model,
             audio,
@@ -95,7 +96,41 @@ class SplitFinalAudioTests(unittest.TestCase):
 
         self.assertEqual(text, "complete transcript")
         self.assertEqual(chunk_count, 1)
-        self.assertEqual(model.calls, 1)
+        self.assertFalse(used_tail_rescue)
+        self.assertEqual(model.calls, 2)
+
+    def test_dedicated_tail_pass_restores_words_missing_from_long_final(self):
+        sample_rate = 100
+        timeline = np.arange(
+            int(sample_rate * (FINAL_TAIL_RESCUE_MIN_SECONDS + 1)),
+            dtype=np.float32,
+        )
+        audio = np.sin(timeline * 0.2).astype(np.float32)
+
+        class FakeParakeet:
+            def __init__(self):
+                self.calls = 0
+
+            def recognize(self, samples, sample_rate):
+                self.calls += 1
+                if self.calls == 1:
+                    return "the long dictation reaches its final section"
+                return "final section and preserves the last three words"
+
+        model = FakeParakeet()
+        text, chunk_count, used_tail_rescue = transcribe_final(
+            "parakeet",
+            model,
+            audio,
+            sample_rate,
+        )
+
+        self.assertEqual(
+            text,
+            "the long dictation reaches its final section and preserves the last three words",
+        )
+        self.assertEqual(chunk_count, 1)
+        self.assertTrue(used_tail_rescue)
 
     def test_long_audio_is_fully_covered_by_overlapping_chunks(self):
         sample_rate = 100

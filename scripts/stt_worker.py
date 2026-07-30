@@ -18,6 +18,8 @@ FINAL_DIRECT_PASS_SECONDS = 90.0
 FINAL_CHUNK_SECONDS = 60.0
 FINAL_CHUNK_OVERLAP_SECONDS = 5.0
 FINAL_SPLIT_SEARCH_SECONDS = 5.0
+FINAL_TAIL_RESCUE_MIN_SECONDS = 20.0
+FINAL_TAIL_RESCUE_WINDOW_SECONDS = 18.0
 
 
 def emit(payload):
@@ -222,22 +224,41 @@ def transcribe_final(engine, model, audio, sample_rate):
     # recordings that approach the model's practical context limit.
     if len(audio) <= int(sample_rate * FINAL_DIRECT_PASS_SECONDS):
         prepared = normalize_audio(audio)
-        return transcribe(engine, model, prepared, sample_rate).strip(), 1
+        text = transcribe(engine, model, prepared, sample_rate).strip()
+        chunk_count = 1
+    else:
+        chunks = split_final_audio(audio, sample_rate)
+        text = ""
+        segment_padding = np.zeros(
+            int(sample_rate * FINAL_TRAILING_PADDING_SECONDS),
+            dtype=np.float32,
+        )
+        for index, chunk in enumerate(chunks):
+            prepared = normalize_audio(chunk)
+            if index < len(chunks) - 1 and not is_probably_silence(prepared):
+                prepared = np.concatenate((prepared, segment_padding))
+            segment = transcribe(engine, model, prepared, sample_rate)
+            if segment:
+                text = merge_final_segments(text, segment)
+        text = text.strip()
+        chunk_count = len(chunks)
 
-    chunks = split_final_audio(audio, sample_rate)
-    merged = ""
-    segment_padding = np.zeros(
-        int(sample_rate * FINAL_TRAILING_PADDING_SECONDS),
-        dtype=np.float32,
-    )
-    for index, chunk in enumerate(chunks):
-        prepared = normalize_audio(chunk)
-        if index < len(chunks) - 1 and not is_probably_silence(prepared):
-            prepared = np.concatenate((prepared, segment_padding))
-        segment = transcribe(engine, model, prepared, sample_rate)
-        if segment:
-            merged = merge_final_segments(merged, segment)
-    return merged.strip(), len(chunks)
+    # A dedicated view of the ending gives the transducer a much shorter
+    # context in which to resolve the final phrase. Only append words found
+    # after a shared boundary anchor, so this pass cannot rewrite the main
+    # transcript or duplicate an unrelated hypothesis.
+    used_tail_rescue = False
+    minimum_samples = int(sample_rate * FINAL_TAIL_RESCUE_MIN_SECONDS)
+    if text and len(audio) >= minimum_samples:
+        window_samples = int(sample_rate * FINAL_TAIL_RESCUE_WINDOW_SECONDS)
+        tail_audio = normalize_audio(audio[-window_samples:])
+        tail_text = transcribe(engine, model, tail_audio, sample_rate).strip()
+        if tail_text:
+            recovered = recover_live_tail(text, tail_text)
+            used_tail_rescue = recovered != text
+            text = recovered
+
+    return text.strip(), chunk_count, used_tail_rescue
 
 
 def live_window(buffer, sample_rate, max_seconds):
@@ -517,7 +538,7 @@ def main():
                         audio = np.asarray(buffer, dtype=np.float32)
                     audio = prepare_final_audio(audio, sample_rate)
                     final_started = time.perf_counter()
-                    text, chunk_count = transcribe_final(
+                    text, chunk_count, used_tail_rescue = transcribe_final(
                         args.engine,
                         model,
                         audio,
@@ -541,6 +562,7 @@ def main():
                             "chunk_count": chunk_count,
                             "used_live_fallback": used_live_fallback,
                             "used_live_tail": used_live_tail,
+                            "used_tail_rescue": used_tail_rescue,
                         }
                     )
 

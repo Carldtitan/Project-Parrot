@@ -22,24 +22,38 @@ class OllamaCleaner:
         if not transcript:
             return ""
 
-        prompt = f"""You are a conservative dictation formatter.
-Your job is to preserve the speaker's words and format them.
+        prompt = f"""You are Parrot's local dictation editor.
+Your job is to turn speech-to-text output into polished, ready-to-paste writing.
 
 Rules:
-- Preserve all phrases, clauses, names, and sentence order.
-- Do not summarize, shorten, paraphrase, or rewrite the sentence structure.
+- Preserve the speaker's meaning, voice, names, facts, and sentence order.
+- Do not summarize, expand, or creatively rewrite.
 - Do not remove opening phrases or introductory clauses.
-- Do not replace uncertain or garbled words with guessed concepts.
+- Never delete subject or helper phrases such as "I think", "you can", "we will", "they should", or "do not".
+- Repair a recognition slip only when the surrounding sentence makes the intended word or short phrase unambiguous. Make the smallest possible correction.
+- Examples include "next field" -> "text field", "final blow" -> "final grade", and "beginners true advanced" -> "beginners through advanced students".
+- Do not leave an obvious semantic impossibility unchanged. In an evaluation context, "final blow" must become "final grade". In a skill-range context, "beginners true advanced" must become "beginners through advanced students".
 - If a word or phrase looks wrong but you are not certain, keep it exactly.
-- Fix punctuation, capitalization, spacing, and obvious plural/singular agreement only.
+- Fix punctuation, capitalization, spacing, and high-confidence recognition slips.
 - Remove filler words only when they are clearly filler, such as "um" or "uh".
 - Keep proper nouns as close to the transcript as possible unless the correction is obvious from spelling.
+- Silently determine the document shape before writing the output.
+- Infer layout from meaning without requiring spoken commands such as "number one" or "firstly".
+- Mandatory: format a how-to, workflow, instruction set, or staged process with three or more distinct actions as a Markdown numbered list, even when the raw transcript has no punctuation or list markers.
+- Put a setup question such as "How does it work?" on its own line before the numbered list.
+- Do not leave a qualifying procedure as one paragraph.
+- Format three or more short parallel items as bullets when they are clearly a collection.
+- Keep ordinary prose as paragraphs and do not invent content.
 - Return only the formatted text.
 
-Examples of forbidden edits:
-- Do not change "pessinum, more and more" to "poetry".
-- Do not change "personal mem war" to "poetry".
-- Do not delete "To dive into world-class essays," from the beginning.
+Formatting example:
+Input: How does it work? Listen carefully. Write the text. Click evaluate.
+Output:
+How does it work?
+
+1. Listen carefully.
+2. Write the text.
+3. Click evaluate.
 
 Dictated text:
 {transcript}

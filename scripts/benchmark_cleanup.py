@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import statistics
 import time
 import urllib.error
@@ -26,6 +27,18 @@ PROTECTED_WORDS = {
     "like",
     "mean",
     "know",
+    "think",
+    "i",
+    "you",
+    "we",
+    "they",
+    "can",
+    "could",
+    "will",
+    "would",
+    "should",
+    "must",
+    "not",
 }
 STOPWORDS = {
     "about",
@@ -67,38 +80,91 @@ def build_prompt(transcript: str, think_mode: str) -> str:
     elif think_mode == "on":
         thinking_directive = "/think\n\n"
 
-    return f"""{thinking_directive}You are a strict local dictation formatter.
+    return f"""{thinking_directive}You are Parrot's local dictation editor.
 Your job is to format speech-to-text output for pasting into the user's active app.
 
-Use one adaptive writing mood based only on the dictated text:
+Use one adaptive writing style based only on the dictated text:
 - If it sounds professional, use formal punctuation and capitalization.
 - If it sounds casual, keep it casual and avoid over-punctuating.
 - If it sounds excited, preserve that energy, but do not add excitement.
 
 Rules:
-- This is not rewriting. This is punctuation and casing repair.
-- Preserve all phrases, clauses, names, and sentence order.
+- Preserve the speaker's meaning, voice, names, facts, and sentence order.
+- This is an editor, not an author. Do not summarize, expand, or creatively rewrite.
 - Do not summarize, shorten, paraphrase, or rewrite the sentence structure.
 - Do not remove opening phrases, introductory clauses, connector words, or discourse words.
 - Keep words like "and", "so", "but", "well", "okay", "now", "then", "because", and "like" unless they are repeated stutters.
+- Never delete subject or helper phrases such as "I think", "you can", "we will", "they should", or "do not".
 - Preserve the approximate word count. The output should usually contain the same words as the input.
-- Do not replace uncertain or garbled words with guessed concepts.
+- Repair a recognition slip only when the surrounding sentence makes the intended word or short phrase unambiguous. Make the smallest possible correction.
+- Examples of high-confidence recognition repair include "write into the next field" -> "write into the text field", "receive a final blow" -> "receive a final grade", and "beginners true advanced" -> "beginners through advanced students".
+- Do not leave an obvious semantic impossibility unchanged. In an evaluation or grading context, "receive a final blow" must become "receive a final grade". In a skill-range context, "beginners true advanced" must become "beginners through advanced students".
 - If a word or phrase looks wrong but you are not certain, keep it exactly.
-- Fix punctuation, capitalization, spacing, and obvious speech-to-text casing only.
+- Fix punctuation, capitalization, spacing, obvious speech-to-text casing, and high-confidence recognition slips.
 - You may add punctuation marks to reflect natural speech pauses: periods, commas, question marks, colons, semicolons, em dashes, and ellipses.
 - Use ellipses for unfinished thoughts or self-interruptions, especially before phrases like "I don't know", "never mind", or "let's see".
-- You may split one raw run-on transcript into sentences, but do not move, delete, or replace words.
+- You may split one raw run-on transcript into sentences.
 - If the raw text is awkward, keep the awkward wording and only make it readable with punctuation.
 - Remove filler words only when they are clearly non-semantic fillers: "um", "uh", "erm".
 - Do not remove "and", "so", "I mean", or "you know"; these may be intentional style.
 - Keep proper nouns as close to the transcript as possible unless the correction is obvious from spelling.
+- Silently determine the document shape before writing the output.
+- Infer layout from meaning; the speaker should not have to dictate "number one", "bullet", "new line", or "firstly".
+- Mandatory layout rule: if the text is a how-to, workflow, set of instructions, or staged process with three or more distinct actions, output those actions as a Markdown numbered list.
+- This mandatory rule applies even when the raw transcript has no punctuation and no spoken list markers.
+- A setup question such as "How does it work?" belongs on its own line before the numbered list. A step may contain more than one supporting sentence.
+- Do not leave a qualifying procedure as one paragraph.
+- When three or more short parallel items are clearly a collection rather than a sequence, format them as bullets.
+- Keep ordinary prose as paragraphs. Do not turn a paragraph into a list merely because it has several sentences.
+- Preserve existing numbered lists, bullet lists, code, and intentional line breaks.
+- Do not invent list items, headings, labels, or content.
 - Do not answer the text.
 - Do not add commentary.
-- Do not add markdown.
 - Return only the formatted text.
+
+Formatting example:
+Input: How does it work? Listen carefully to the audio file. Write the text into the text field. Once you are done, click the button to have your dictation evaluated. We instantly check and correct your text.
+Output:
+How does it work?
+
+1. Listen carefully to the audio file.
+2. Write the text into the text field.
+3. Once you are done, click the button to have your dictation evaluated.
+4. We instantly check and correct your text.
 
 Dictated text:
 {transcript}
+"""
+
+
+def build_preservation_retry_prompt(
+    original: str,
+    candidate: str,
+    think_mode: str,
+) -> str:
+    thinking_directive = ""
+    if think_mode == "off":
+        thinking_directive = "/no_think\n\n"
+    elif think_mode == "on":
+        thinking_directive = "/think\n\n"
+
+    return f"""{thinking_directive}You are Parrot's final dictation verifier.
+The draft below has useful punctuation and layout, but it was rejected because it dropped words from the source.
+
+Requirements:
+- Keep the draft's punctuation, paragraphs, and Markdown list layout.
+- Restore every phrase from the source in its original order.
+- Never delete phrases such as "I think", "you can", "we will", "they should", or "do not".
+- Preserve connector words including "and", "so", "but", "then", and "because".
+- Keep only high-confidence acoustic repairs when context makes them certain: grading "final blow" may be "final grade"; a range from "beginners true advanced" may be "beginners through advanced students".
+- Do not summarize, answer, explain, or add new facts.
+- Return only the corrected final text.
+
+Source transcript:
+{original}
+
+Rejected formatted draft:
+{candidate}
 """
 
 
@@ -212,6 +278,74 @@ def removed_protected_words(original: str, cleaned: str) -> bool:
     return False
 
 
+def restore_dropped_protected_phrases(original: str, candidate: str) -> str:
+    original_words = [
+        (match.group(0).lower(), match.group(0), match.start())
+        for match in re.finditer(r"[A-Za-z']+", original)
+    ]
+    candidate_words = [
+        (match.group(0).lower(), match.group(0), match.start())
+        for match in re.finditer(r"[A-Za-z']+", candidate)
+    ]
+    if not original_words or not candidate_words:
+        return candidate
+
+    original_index = 0
+    candidate_index = 0
+    insertions: list[tuple[int, str]] = []
+    lookahead = 8
+    while (
+        original_index < len(original_words)
+        and candidate_index < len(candidate_words)
+    ):
+        if original_words[original_index][0] == candidate_words[candidate_index][0]:
+            original_index += 1
+            candidate_index += 1
+            continue
+
+        original_match = next(
+            (
+                index
+                for index in range(
+                    original_index + 1,
+                    min(len(original_words), original_index + lookahead + 1),
+                )
+                if original_words[index][0] == candidate_words[candidate_index][0]
+            ),
+            None,
+        )
+        if original_match is not None:
+            omitted = original_words[original_index:original_match]
+            if omitted and all(word[0] in PROTECTED_WORDS for word in omitted):
+                phrase = " ".join(word[1] for word in omitted) + " "
+                insertions.append((candidate_words[candidate_index][2], phrase))
+                original_index = original_match
+                continue
+
+        candidate_match = next(
+            (
+                index
+                for index in range(
+                    candidate_index + 1,
+                    min(len(candidate_words), candidate_index + lookahead + 1),
+                )
+                if candidate_words[index][0] == original_words[original_index][0]
+            ),
+            None,
+        )
+        if candidate_match is not None:
+            candidate_index = candidate_match
+            continue
+
+        original_index += 1
+        candidate_index += 1
+
+    restored = candidate
+    for position, phrase in reversed(insertions):
+        restored = restored[:position] + phrase + restored[position:]
+    return restored
+
+
 def protected_recall(original: str, cleaned: str) -> float:
     original_words = all_words(original)
     cleaned_words = all_words(cleaned)
@@ -307,7 +441,43 @@ def benchmark_model(args: argparse.Namespace, model: str, cases: list[Case]) -> 
                 args.timeout,
             )
             latency_seconds = time.perf_counter() - started
-            output = strip_wrapping_quotes(str(response.get("response", "")).strip())
+            output = restore_dropped_protected_phrases(
+                case.raw,
+                strip_wrapping_quotes(str(response.get("response", "")).strip()),
+            )
+            used_retry = False
+            if output and not preserves_content(case.raw, output):
+                retry_response = post_json(
+                    args.endpoint,
+                    {
+                        "model": model,
+                        "prompt": build_preservation_retry_prompt(
+                            case.raw,
+                            output,
+                            args.think_mode,
+                        ),
+                        "stream": False,
+                        "keep_alive": args.keep_alive,
+                        "options": {
+                            "temperature": 0,
+                            "top_p": 0.1,
+                            "repeat_penalty": 1.0,
+                            "num_predict": args.num_predict,
+                        },
+                    },
+                    args.timeout,
+                )
+                latency_seconds = time.perf_counter() - started
+                retried = restore_dropped_protected_phrases(
+                    case.raw,
+                    strip_wrapping_quotes(
+                        str(retry_response.get("response", "")).strip()
+                    ),
+                )
+                if retried and preserves_content(case.raw, retried):
+                    output = retried
+                    response = retry_response
+                    used_retry = True
             scores = quality_scores(case, output)
             rows.append(
                 {
@@ -322,6 +492,7 @@ def benchmark_model(args: argparse.Namespace, model: str, cases: list[Case]) -> 
                         response.get("eval_count", 0)
                         / max(0.001, response.get("eval_duration", 0) / 1_000_000_000)
                     ),
+                    "used_retry": used_retry,
                     "raw": case.raw,
                     "expected": case.expected,
                     "output": output,

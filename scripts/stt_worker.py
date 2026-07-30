@@ -78,7 +78,10 @@ def is_probably_silence(audio):
         return True
     peak = float(np.max(np.abs(audio)))
     rms = float(np.sqrt(np.mean(audio * audio)))
-    return peak < 0.006 or rms < 0.0015
+    # Quiet speech can have low average energy while still containing clear
+    # phoneme peaks. Requiring both values to be tiny avoids rejecting soft
+    # voices solely because their RMS is below a conservative VAD threshold.
+    return peak < 0.004 and rms < 0.001
 
 
 def trim_silence(audio, sample_rate):
@@ -116,19 +119,14 @@ def trim_silence(audio, sample_rate):
 
 def prepare_final_audio(audio, sample_rate):
     source = np.asarray(audio, dtype=np.float32)
-    trimmed = trim_silence(source, sample_rate)
+    if is_probably_silence(source):
+        return source
 
-    # Some laptop microphones produce speech below the conservative trimming
-    # threshold even though the recognizer can transcribe the untrimmed signal.
-    # Never discard an otherwise useful utterance solely because trimming found
-    # too little voiced audio.
-    minimum_useful_samples = int(sample_rate * 0.25)
-    if source.size >= minimum_useful_samples and trimmed.size < minimum_useful_samples:
-        trimmed = source
-
-    normalized = normalize_audio(trimmed)
-    if is_probably_silence(normalized):
-        return normalized
+    # The final pass is deliberately lossless. Trimming based on an energy
+    # threshold can remove a softly spoken first or last phrase even when the
+    # middle of the utterance is loud. Parakeet handles surrounding silence,
+    # so preserve every captured sample and only append a clean end boundary.
+    normalized = normalize_audio(source)
 
     # Transducer models make a more stable final-token decision when speech is
     # followed by a clean non-speech boundary. This also prevents the last
@@ -228,7 +226,7 @@ def transcribe_final(engine, model, audio, sample_rate):
             prepared = np.concatenate((prepared, segment_padding))
         segment = transcribe(engine, model, prepared, sample_rate)
         if segment:
-            merged = merge_rolling_transcript(merged, segment)
+            merged = merge_final_segments(merged, segment)
     return merged.strip(), len(chunks)
 
 
@@ -291,6 +289,52 @@ def merge_rolling_transcript(previous, current):
     # A one-word boundary is still useful for short phrases.
     if previous_keys[-1] == current_keys[0]:
         return " ".join(previous_words[:-1] + current_words)
+
+    return f"{previous} {current}".strip()
+
+
+def merge_final_segments(previous, current):
+    """Join final overlapping chunks without replacing an unbounded old tail."""
+    previous = str(previous or "").strip()
+    current = str(current or "").strip()
+    if not previous:
+        return current
+    if not current:
+        return previous
+
+    previous_words = previous.split()
+    current_words = current.split()
+    previous_keys = [normalized_token(word) for word in previous_words]
+    current_keys = [normalized_token(word) for word in current_words]
+
+    max_overlap = min(16, len(previous_keys), len(current_keys))
+    for overlap in range(max_overlap, 0, -1):
+        if previous_keys[-overlap:] == current_keys[:overlap]:
+            return " ".join(previous_words[:-overlap] + current_words)
+
+    # Parakeet can revise a word inside the overlap. Limit fuzzy anchoring to
+    # the last/first 16 words so a common phrase cannot erase older dictation.
+    previous_tail_start = max(0, len(previous_keys) - 16)
+    current_head_end = min(len(current_keys), 16)
+    matcher = SequenceMatcher(
+        None,
+        previous_keys[previous_tail_start:],
+        current_keys[:current_head_end],
+        autojunk=False,
+    )
+    candidates = [
+        block
+        for block in matcher.get_matching_blocks()
+        if block.size >= 2
+        and block.a + block.size >= len(previous_keys) - previous_tail_start - 8
+        and block.b <= 8
+    ]
+    if candidates:
+        anchor = max(candidates, key=lambda block: (block.size, block.a, -block.b))
+        previous_anchor = previous_tail_start + anchor.a
+        return " ".join(
+            previous_words[:previous_anchor] + current_words[anchor.b:]
+        )
 
     return f"{previous} {current}".strip()
 

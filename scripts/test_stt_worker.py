@@ -5,6 +5,7 @@ import numpy as np
 from scripts.stt_worker import (
     FINAL_TRAILING_PADDING_SECONDS,
     merge_rolling_transcript,
+    merge_final_segments,
     prepare_final_audio,
     recover_live_tail,
     split_final_audio,
@@ -94,6 +95,32 @@ class SplitFinalAudioTests(unittest.TestCase):
 
         self.assertEqual(len(chunks), 1)
         self.assertTrue(np.array_equal(chunks[0], audio))
+
+    def test_final_audio_preserves_soft_edges(self):
+        sample_rate = 16_000
+        quiet_edge = np.full(sample_rate, 0.005, dtype=np.float32)
+        loud_middle = np.full(sample_rate, 0.08, dtype=np.float32)
+        source = np.concatenate((quiet_edge, loud_middle, quiet_edge))
+
+        prepared = prepare_final_audio(source, sample_rate)
+
+        self.assertEqual(
+            len(prepared),
+            len(source) + int(sample_rate * FINAL_TRAILING_PADDING_SECONDS),
+        )
+
+    def test_final_merge_cannot_erase_an_old_common_phrase(self):
+        previous = (
+            "the first section keeps every important word and the shared phrase "
+            "appears here before twelve unique closing words alpha beta gamma delta "
+            "epsilon zeta eta theta iota kappa lambda mu"
+        )
+        current = "the shared phrase appears here and then the new ending arrives"
+
+        merged = merge_final_segments(previous, current)
+
+        self.assertIn("first section keeps every important word", merged)
+        self.assertIn("alpha beta gamma delta", merged)
 
 
 class RecoverLiveTailTests(unittest.TestCase):

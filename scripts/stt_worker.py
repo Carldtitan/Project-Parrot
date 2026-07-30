@@ -580,10 +580,9 @@ def main():
                 )
                 if worker_shutdown:
                     return
-                if pending_final is not None:
+                if pending_final is not None and pending_live is None:
                     command = ("final", pending_final)
                     pending_final = None
-                    pending_live = None
                 else:
                     command = ("live", pending_live)
                     pending_live = None
@@ -605,8 +604,7 @@ def main():
 
                     with work_ready:
                         stale = command_session != session_id
-                        final_waiting = pending_final is not None
-                    if stale or final_waiting:
+                    if stale:
                         continue
 
                     if text:
@@ -728,7 +726,6 @@ def main():
                     else:
                         audio = np.asarray(buffer, dtype=np.float32)
                     with work_ready:
-                        pending_live = None
                         pending_final = (session_id, audio, sample_rate)
                         work_ready.notify()
 

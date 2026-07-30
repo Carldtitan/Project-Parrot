@@ -37,7 +37,7 @@ pub struct Args {
 
     #[arg(
         long,
-        default_value_t = 2.0,
+        default_value_t = 8.0,
         help = "Seconds of recent audio used for live preview. Final paste uses full utterance."
     )]
     pub live_window_seconds: f32,
@@ -131,6 +131,7 @@ mod tests {
         let args = Args::try_parse_from(["project-parrot"]).expect("default args should parse");
         assert_eq!(args.stt, "parakeet");
         assert_eq!(args.ollama_model, "qwen2.5:3b-instruct");
+        assert_eq!(args.live_window_seconds, 8.0);
     }
 
     #[test]

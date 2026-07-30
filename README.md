@@ -24,20 +24,23 @@ The product work includes:
 
 - rolling live transcription that preserves earlier words during long speech;
 - lossless microphone buffering when live recognition falls behind;
-- silence-aligned, overlapping final recognition for long dictations;
+- full-context final recognition through 90 seconds, then overlapping
+  minute-scale recognition for extended dictations;
 - global push-to-talk and hands-free dictation;
 - configurable keyboard and side-mouse shortcuts;
 - instant cancel plus recover, copy, or re-paste from local history;
 - automatic semantic formatting for steps and lists without spoken numbering;
 - high-confidence local repair for obvious recognition slips;
 - protected end-of-utterance capture and live-tail recovery for final words;
-- deterministic filler removal, spoken punctuation, and explicit corrections;
+- conservative filler removal and spoken punctuation without deleting
+  intentional repetition, negation, or phrases around "actually";
 - app-aware formatting for IDEs, filenames, syntax, and case commands;
 - a personal dictionary, local vocabulary learning, and reusable snippets;
 - private on-device history, usage totals, and long-session safeguards;
 - clipboard-safe insertion into the previously focused app;
 - a non-focus-stealing overlay and persistent Windows tray process;
-- an optional local formatter with a guarded raw-transcript fallback;
+- an optional local formatter whose punctuation and layout are reconciled
+  word-for-word against the recognized transcript;
 - benchmark-driven model selection; and
 - a reproducible Windows installer and continuously updated GitHub release.
 
@@ -124,7 +127,8 @@ npm test
 npm run test:e2e
 npm run verify:live-stt
 npm run verify:long-stt
-python -m unittest scripts.test_stt_worker
+npm run verify:extended-stt
+python -m unittest scripts.test_stt_worker scripts.test_cleanup_pipeline
 python -m compileall -q parrot scripts
 ```
 
@@ -132,7 +136,9 @@ python -m compileall -q parrot scripts
 worker protocol used during dictation. It fails unless Parrot produces live
 partials and a final transcript below the configured word-error threshold.
 `verify:long-stt` runs a full minute at real microphone speed with the desktop
-app's production live-window settings and gates both live and final coverage.
+app's production live-window settings and gates both live and final accuracy at
+10% final WER or better. `verify:extended-stt` exercises the segmented path
+beyond 90 seconds with the same final accuracy threshold.
 
 ## Package and release
 

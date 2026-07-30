@@ -52,6 +52,8 @@ enum WorkerMessage {
         latency_ms: Option<u32>,
         #[serde(default)]
         used_live_fallback: bool,
+        #[serde(default)]
+        used_live_tail: bool,
     },
     #[serde(rename = "error")]
     Error { message: String },
@@ -153,12 +155,16 @@ impl SttWorker {
                         text,
                         latency_ms,
                         used_live_fallback,
+                        used_live_tail,
                     }) => {
                         if let Some(latency_ms) = latency_ms {
                             log(&format!("Final STT latency: {latency_ms}ms"));
                         }
                         if used_live_fallback {
                             log("Final STT was empty; using the recognized live transcript.");
+                        }
+                        if used_live_tail {
+                            log("Restored a trailing phrase from the recognized live transcript.");
                         }
                         let _ = tx.send(WorkerEvent::Final(text));
                     }

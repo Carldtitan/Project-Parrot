@@ -60,9 +60,12 @@ large and have their own upstream licenses and cache lifecycle.
 8. Install the generated NSIS package on a clean Windows user account.
 9. Confirm the app starts in the tray and the settings window can be closed.
 10. Test push-to-talk, hands-free, cancel, and paste-previous in Notepad.
-11. Test spoken lists and developer-aware formatting in a multiline editor.
-12. Add a dictionary entry and snippet, then confirm both affect a dictation.
-13. Confirm history and usage totals persist after restarting the app.
-14. Optionally pull Qwen using **Install formatter** under Advanced settings.
-15. Confirm **Quit Project Parrot** removes both the Rust and STT worker
+11. Dictate a three-step procedure without saying numbers; confirm Qwen returns
+    a numbered list in a multiline editor.
+12. End a sentence immediately before releasing push-to-talk; confirm the final
+    words survive the full recognition pass.
+13. Add a dictionary entry and snippet, then confirm both affect a dictation.
+14. Confirm history and usage totals persist after restarting the app.
+15. Optionally pull Qwen using **Install formatter** under Advanced settings.
+16. Confirm **Quit Project Parrot** removes both the Rust and STT worker
    processes.

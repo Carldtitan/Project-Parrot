@@ -148,13 +148,13 @@ function createMainWindow() {
     minWidth: 760,
     minHeight: 600,
     show: false,
-    backgroundColor: "#f3f0f5",
+    backgroundColor: "#edf3ee",
     autoHideMenuBar: true,
     title: "Parrot",
     titleBarStyle: "hidden",
     titleBarOverlay: {
-      color: "#f3f0f5",
-      symbolColor: "#29232d",
+      color: "#edf3ee",
+      symbolColor: "#193b33",
       height: 48,
     },
     webPreferences: {

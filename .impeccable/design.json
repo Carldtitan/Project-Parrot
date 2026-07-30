@@ -1,271 +1,146 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-30T03:13:31.1987121Z",
+  "generatedAt": "2026-07-30T03:10:00.000Z",
   "title": "Design System: Parrot",
   "extensions": {
     "colorMeta": {
-      "ink": {
-        "role": "neutral",
-        "displayName": "Working Aubergine",
-        "canonical": "#29232d",
-        "tonalRamp": ["#17131c", "#29232d", "#49404f", "#6a5f70", "#8d8292", "#b0a6b6", "#d5ced9", "#f5f1f7"]
-      },
-      "ink-strong": {
-        "role": "neutral",
-        "displayName": "Deep Aubergine",
-        "canonical": "#17131c",
-        "tonalRamp": ["#17131c", "#29232d", "#49404f", "#6a5f70", "#8d8292", "#b0a6b6", "#d5ced9", "#f5f1f7"]
-      },
-      "muted": {
-        "role": "neutral",
-        "displayName": "Muted Plum",
-        "canonical": "#746c79",
-        "tonalRamp": ["#211d24", "#39333e", "#514a57", "#6a626f", "#867e8b", "#aaa2af", "#d1cad5", "#f4f1f5"]
-      },
-      "muted-strong": {
-        "role": "neutral",
-        "displayName": "Strong Plum",
-        "canonical": "#564e5c",
-        "tonalRamp": ["#211d24", "#39333e", "#514a57", "#6a626f", "#867e8b", "#aaa2af", "#d1cad5", "#f4f1f5"]
-      },
-      "canvas": {
-        "role": "neutral",
-        "displayName": "Chalk Lavender",
-        "canonical": "#f3f0f5",
-        "tonalRamp": ["#242027", "#413a45", "#62596a", "#867b8e", "#aba1b2", "#cec7d3", "#e5e0e8", "#f8f6f9"]
-      },
-      "surface": {
-        "role": "neutral",
-        "displayName": "Caption White",
-        "canonical": "#fbf9fc",
-        "tonalRamp": ["#28232b", "#48404c", "#6b6171", "#918696", "#b8afbd", "#d9d3dd", "#ede9f0", "#fbf9fc"]
-      },
-      "surface-subtle": {
-        "role": "neutral",
-        "displayName": "Lavender Shelf",
-        "canonical": "#ebe7ee",
-        "tonalRamp": ["#242027", "#413a45", "#62596a", "#867b8e", "#aba1b2", "#cec7d3", "#e5e0e8", "#f8f6f9"]
-      },
-      "surface-hover": {
-        "role": "neutral",
-        "displayName": "Lavender Hover",
-        "canonical": "#e4dfe8",
-        "tonalRamp": ["#242027", "#413a45", "#62596a", "#867b8e", "#aba1b2", "#cec7d3", "#e5e0e8", "#f8f6f9"]
-      },
-      "line": {
-        "role": "neutral",
-        "displayName": "Editorial Rule",
-        "canonical": "#dcd5e0",
-        "tonalRamp": ["#242027", "#413a45", "#62596a", "#867b8e", "#aba1b2", "#c5bdca", "#dcd5e0", "#f3eff5"]
-      },
-      "line-strong": {
-        "role": "neutral",
-        "displayName": "Strong Rule",
-        "canonical": "#c5bdca",
-        "tonalRamp": ["#242027", "#413a45", "#62596a", "#867b8e", "#aba1b2", "#c5bdca", "#dcd5e0", "#f3eff5"]
-      },
-      "sidebar": {
-        "role": "neutral",
-        "displayName": "Night Aubergine",
-        "canonical": "#1c1721",
-        "tonalRamp": ["#17131c", "#29232d", "#49404f", "#6a5f70", "#8d8292", "#b0a6b6", "#d5ced9", "#f5f1f7"]
-      },
-      "sidebar-muted": {
-        "role": "neutral",
-        "displayName": "Rail Plum",
-        "canonical": "#aca3b4",
-        "tonalRamp": ["#211d24", "#39333e", "#514a57", "#6a626f", "#867e8b", "#aaa2af", "#d1cad5", "#f4f1f5"]
-      },
-      "sidebar-active": {
-        "role": "neutral",
-        "displayName": "Rail Paper",
-        "canonical": "#fbf9fc",
-        "tonalRamp": ["#28232b", "#48404c", "#6b6171", "#918696", "#b8afbd", "#d9d3dd", "#ede9f0", "#fbf9fc"]
-      },
-      "accent": {
-        "role": "primary",
-        "displayName": "Parrot Chartreuse",
-        "canonical": "#d9ff57",
-        "tonalRamp": ["#1e2600", "#354500", "#526a00", "#718f0d", "#91b629", "#b3db40", "#d9ff57", "#f2ffc0"]
-      },
-      "accent-hover": {
-        "role": "primary",
-        "displayName": "Pressed Chartreuse",
-        "canonical": "#c7ee3d",
-        "tonalRamp": ["#1e2600", "#354500", "#526a00", "#718f0d", "#91b629", "#b3db40", "#d9ff57", "#f2ffc0"]
-      },
-      "accent-soft": {
-        "role": "primary",
-        "displayName": "Chartreuse Wash",
-        "canonical": "#efffc1",
-        "tonalRamp": ["#1e2600", "#354500", "#526a00", "#718f0d", "#91b629", "#b3db40", "#d9ff57", "#f2ffc0"]
-      },
-      "accent-ink": {
-        "role": "primary",
-        "displayName": "Moss Ink",
-        "canonical": "#3c4b00",
-        "tonalRamp": ["#1e2600", "#354500", "#526a00", "#718f0d", "#91b629", "#b3db40", "#d9ff57", "#f2ffc0"]
-      },
-      "success": {
-        "role": "secondary",
-        "displayName": "Ready Green",
-        "canonical": "#16815a",
-        "tonalRamp": ["#06291d", "#0b4832", "#126b4a", "#1c8f65", "#45ae85", "#75cbaa", "#afe5d0", "#e8f8f1"]
-      },
-      "warning": {
-        "role": "tertiary",
-        "displayName": "Working Amber",
-        "canonical": "#b66a19",
-        "tonalRamp": ["#361d05", "#603407", "#8b4d0c", "#b66a19", "#d48c3b", "#eab36f", "#f6d7ae", "#fff3df"]
-      },
-      "danger": {
-        "role": "tertiary",
-        "displayName": "Recording Coral",
-        "canonical": "#c84046",
-        "tonalRamp": ["#3c0c10", "#68151b", "#98242a", "#c84046", "#df6d73", "#ee9fa3", "#f7cbcd", "#fdebed"]
-      },
-      "danger-hover": {
-        "role": "tertiary",
-        "displayName": "Pressed Coral",
-        "canonical": "#b43339",
-        "tonalRamp": ["#3c0c10", "#68151b", "#98242a", "#c84046", "#df6d73", "#ee9fa3", "#f7cbcd", "#fdebed"]
-      },
-      "danger-soft": {
-        "role": "tertiary",
-        "displayName": "Coral Wash",
-        "canonical": "#fdebed",
-        "tonalRamp": ["#3c0c10", "#68151b", "#98242a", "#c84046", "#df6d73", "#ee9fa3", "#f7cbcd", "#fdebed"]
-      }
+      "ink": {"role":"neutral","displayName":"Canopy Ink","canonical":"#29483f","tonalRamp":["oklch(15% 0.040 173.6)","oklch(26% 0.040 173.6)","oklch(38% 0.040 173.6)","oklch(50% 0.040 173.6)","oklch(62% 0.040 173.6)","oklch(74% 0.040 173.6)","oklch(86% 0.040 173.6)","oklch(95% 0.040 173.6)"]},
+      "ink-strong": {"role":"neutral","displayName":"Deep Canopy","canonical":"#143a31","tonalRamp":["oklch(15% 0.046 175.2)","oklch(26% 0.046 175.2)","oklch(38% 0.046 175.2)","oklch(50% 0.046 175.2)","oklch(62% 0.046 175.2)","oklch(74% 0.046 175.2)","oklch(86% 0.046 175.2)","oklch(95% 0.046 175.2)"]},
+      "muted": {"role":"neutral","displayName":"Moss Note","canonical":"#596f67","tonalRamp":["oklch(15% 0.029 171.0)","oklch(26% 0.029 171.0)","oklch(38% 0.029 171.0)","oklch(50% 0.029 171.0)","oklch(62% 0.029 171.0)","oklch(74% 0.029 171.0)","oklch(86% 0.029 171.0)","oklch(95% 0.029 171.0)"]},
+      "muted-strong": {"role":"neutral","displayName":"Moss Label","canonical":"#4d685f","tonalRamp":["oklch(15% 0.035 172.3)","oklch(26% 0.035 172.3)","oklch(38% 0.035 172.3)","oklch(50% 0.035 172.3)","oklch(62% 0.035 172.3)","oklch(74% 0.035 172.3)","oklch(86% 0.035 172.3)","oklch(95% 0.035 172.3)"]},
+      "canvas": {"role":"neutral","displayName":"Mineral Field","canonical":"#edf3ee","tonalRamp":["oklch(15% 0.009 150.7)","oklch(26% 0.009 150.7)","oklch(38% 0.009 150.7)","oklch(50% 0.009 150.7)","oklch(62% 0.009 150.7)","oklch(74% 0.009 150.7)","oklch(86% 0.009 150.7)","oklch(95% 0.009 150.7)"]},
+      "surface": {"role":"neutral","displayName":"Feather Surface","canonical":"#fbfcf8","tonalRamp":["oklch(15% 0.005 117.9)","oklch(26% 0.005 117.9)","oklch(38% 0.005 117.9)","oklch(50% 0.005 117.9)","oklch(62% 0.005 117.9)","oklch(74% 0.005 117.9)","oklch(86% 0.005 117.9)","oklch(95% 0.005 117.9)"]},
+      "surface-subtle": {"role":"neutral","displayName":"Pale Leaf Surface","canonical":"#e5ede6","tonalRamp":["oklch(15% 0.013 149.2)","oklch(26% 0.013 149.2)","oklch(38% 0.013 149.2)","oklch(50% 0.013 149.2)","oklch(62% 0.013 149.2)","oklch(74% 0.013 149.2)","oklch(86% 0.013 149.2)","oklch(95% 0.013 149.2)"]},
+      "surface-hover": {"role":"neutral","displayName":"Leaf Hover","canonical":"#dce8de","tonalRamp":["oklch(15% 0.019 150.5)","oklch(26% 0.019 150.5)","oklch(38% 0.019 150.5)","oklch(50% 0.019 150.5)","oklch(62% 0.019 150.5)","oklch(74% 0.019 150.5)","oklch(86% 0.019 150.5)","oklch(95% 0.019 150.5)"]},
+      "line": {"role":"neutral","displayName":"Stem Rule","canonical":"#d4ded5","tonalRamp":["oklch(15% 0.016 148.4)","oklch(26% 0.016 148.4)","oklch(38% 0.016 148.4)","oklch(50% 0.016 148.4)","oklch(62% 0.016 148.4)","oklch(74% 0.016 148.4)","oklch(86% 0.016 148.4)","oklch(95% 0.016 148.4)"]},
+      "line-strong": {"role":"neutral","displayName":"Strong Stem","canonical":"#bdccbf","tonalRamp":["oklch(15% 0.024 149.3)","oklch(26% 0.024 149.3)","oklch(38% 0.024 149.3)","oklch(50% 0.024 149.3)","oklch(62% 0.024 149.3)","oklch(74% 0.024 149.3)","oklch(86% 0.024 149.3)","oklch(95% 0.024 149.3)"]},
+      "sidebar": {"role":"neutral","displayName":"Forest Rail","canonical":"#103a31","tonalRamp":["oklch(15% 0.049 176.2)","oklch(26% 0.049 176.2)","oklch(38% 0.049 176.2)","oklch(50% 0.049 176.2)","oklch(62% 0.049 176.2)","oklch(74% 0.049 176.2)","oklch(86% 0.049 176.2)","oklch(95% 0.049 176.2)"]},
+      "sidebar-muted": {"role":"neutral","displayName":"Rail Sage","canonical":"#a9c1b5","tonalRamp":["oklch(15% 0.031 164.1)","oklch(26% 0.031 164.1)","oklch(38% 0.031 164.1)","oklch(50% 0.031 164.1)","oklch(62% 0.031 164.1)","oklch(74% 0.031 164.1)","oklch(86% 0.031 164.1)","oklch(95% 0.031 164.1)"]},
+      "sidebar-active": {"role":"neutral","displayName":"Rail Feather","canonical":"#f4f7ed","tonalRamp":["oklch(15% 0.014 120.3)","oklch(26% 0.014 120.3)","oklch(38% 0.014 120.3)","oklch(50% 0.014 120.3)","oklch(62% 0.014 120.3)","oklch(74% 0.014 120.3)","oklch(86% 0.014 120.3)","oklch(95% 0.014 120.3)"]},
+      "accent": {"role":"primary","displayName":"Wing Chartreuse","canonical":"#c7ee57","tonalRamp":["oklch(15% 0.180 122.5)","oklch(26% 0.180 122.5)","oklch(38% 0.180 122.5)","oklch(50% 0.180 122.5)","oklch(62% 0.180 122.5)","oklch(74% 0.180 122.5)","oklch(86% 0.180 122.5)","oklch(95% 0.180 122.5)"]},
+      "accent-hover": {"role":"primary","displayName":"Pressed Wing","canonical":"#b8df45","tonalRamp":["oklch(15% 0.181 122.7)","oklch(26% 0.181 122.7)","oklch(38% 0.181 122.7)","oklch(50% 0.181 122.7)","oklch(62% 0.181 122.7)","oklch(74% 0.181 122.7)","oklch(86% 0.181 122.7)","oklch(95% 0.181 122.7)"]},
+      "accent-soft": {"role":"primary","displayName":"Wing Wash","canonical":"#eaf7c8","tonalRamp":["oklch(15% 0.063 120.2)","oklch(26% 0.063 120.2)","oklch(38% 0.063 120.2)","oklch(50% 0.063 120.2)","oklch(62% 0.063 120.2)","oklch(74% 0.063 120.2)","oklch(86% 0.063 120.2)","oklch(95% 0.063 120.2)"]},
+      "accent-ink": {"role":"primary","displayName":"Forest Ink","canonical":"#24451f","tonalRamp":["oklch(15% 0.074 141.1)","oklch(26% 0.074 141.1)","oklch(38% 0.074 141.1)","oklch(50% 0.074 141.1)","oklch(62% 0.074 141.1)","oklch(74% 0.074 141.1)","oklch(86% 0.074 141.1)","oklch(95% 0.074 141.1)"]},
+      "success": {"role":"secondary","displayName":"Ready Leaf","canonical":"#36875b","tonalRamp":["oklch(15% 0.105 156.6)","oklch(26% 0.105 156.6)","oklch(38% 0.105 156.6)","oklch(50% 0.105 156.6)","oklch(62% 0.105 156.6)","oklch(74% 0.105 156.6)","oklch(86% 0.105 156.6)","oklch(95% 0.105 156.6)"]},
+      "warning": {"role":"secondary","displayName":"Working Ochre","canonical":"#bd782f","tonalRamp":["oklch(15% 0.122 63.4)","oklch(26% 0.122 63.4)","oklch(38% 0.122 63.4)","oklch(50% 0.122 63.4)","oklch(62% 0.122 63.4)","oklch(74% 0.122 63.4)","oklch(86% 0.122 63.4)","oklch(95% 0.122 63.4)"]},
+      "danger": {"role":"secondary","displayName":"Recording Coral","canonical":"#ce4437","tonalRamp":["oklch(15% 0.176 29.0)","oklch(26% 0.176 29.0)","oklch(38% 0.176 29.0)","oklch(50% 0.176 29.0)","oklch(62% 0.176 29.0)","oklch(74% 0.176 29.0)","oklch(86% 0.176 29.0)","oklch(95% 0.176 29.0)"]},
+      "danger-hover": {"role":"secondary","displayName":"Deep Recording Coral","canonical":"#b83a30","tonalRamp":["oklch(15% 0.164 28.4)","oklch(26% 0.164 28.4)","oklch(38% 0.164 28.4)","oklch(50% 0.164 28.4)","oklch(62% 0.164 28.4)","oklch(74% 0.164 28.4)","oklch(86% 0.164 28.4)","oklch(95% 0.164 28.4)"]},
+      "danger-soft": {"role":"secondary","displayName":"Coral Mist","canonical":"#fcebe7","tonalRamp":["oklch(15% 0.019 33.4)","oklch(26% 0.019 33.4)","oklch(38% 0.019 33.4)","oklch(50% 0.019 33.4)","oklch(62% 0.019 33.4)","oklch(74% 0.019 33.4)","oklch(86% 0.019 33.4)","oklch(95% 0.019 33.4)"]},
+      "brand-jungle": {"role":"tertiary","displayName":"Mark Jungle","canonical":"#123f35","tonalRamp":["oklch(15% 0.052 175.5)","oklch(26% 0.052 175.5)","oklch(38% 0.052 175.5)","oklch(50% 0.052 175.5)","oklch(62% 0.052 175.5)","oklch(74% 0.052 175.5)","oklch(86% 0.052 175.5)","oklch(95% 0.052 175.5)"]},
+      "brand-leaf": {"role":"tertiary","displayName":"Mark Leaf","canonical":"#4f9a58","tonalRamp":["oklch(15% 0.123 146.5)","oklch(26% 0.123 146.5)","oklch(38% 0.123 146.5)","oklch(50% 0.123 146.5)","oklch(62% 0.123 146.5)","oklch(74% 0.123 146.5)","oklch(86% 0.123 146.5)","oklch(95% 0.123 146.5)"]},
+      "brand-tail-bright": {"role":"tertiary","displayName":"Bright Tail","canonical":"#91cf4e","tonalRamp":["oklch(15% 0.172 131.2)","oklch(26% 0.172 131.2)","oklch(38% 0.172 131.2)","oklch(50% 0.172 131.2)","oklch(62% 0.172 131.2)","oklch(74% 0.172 131.2)","oklch(86% 0.172 131.2)","oklch(95% 0.172 131.2)"]},
+      "brand-wing-shadow": {"role":"tertiary","displayName":"Wing Shadow","canonical":"#78b844","tonalRamp":["oklch(15% 0.162 133.5)","oklch(26% 0.162 133.5)","oklch(38% 0.162 133.5)","oklch(50% 0.162 133.5)","oklch(62% 0.162 133.5)","oklch(74% 0.162 133.5)","oklch(86% 0.162 133.5)","oklch(95% 0.162 133.5)"]},
+      "brand-coral": {"role":"tertiary","displayName":"Macaw Coral","canonical":"#ff7259","tonalRamp":["oklch(15% 0.177 31.9)","oklch(26% 0.177 31.9)","oklch(38% 0.177 31.9)","oklch(50% 0.177 31.9)","oklch(62% 0.177 31.9)","oklch(74% 0.177 31.9)","oklch(86% 0.177 31.9)","oklch(95% 0.177 31.9)"]},
+      "brand-coral-shadow": {"role":"tertiary","displayName":"Beak Shadow","canonical":"#e85143","tonalRamp":["oklch(15% 0.189 28.7)","oklch(26% 0.189 28.7)","oklch(38% 0.189 28.7)","oklch(50% 0.189 28.7)","oklch(62% 0.189 28.7)","oklch(74% 0.189 28.7)","oklch(86% 0.189 28.7)","oklch(95% 0.189 28.7)"]},
+      "brand-feather": {"role":"tertiary","displayName":"Feather White","canonical":"#f4f6e9","tonalRamp":["oklch(15% 0.017 113.8)","oklch(26% 0.017 113.8)","oklch(38% 0.017 113.8)","oklch(50% 0.017 113.8)","oklch(62% 0.017 113.8)","oklch(74% 0.017 113.8)","oklch(86% 0.017 113.8)","oklch(95% 0.017 113.8)"]}
     },
     "typographyMeta": {
-      "display": {"displayName": "Display", "purpose": "View-level product statements and the Home headline."},
-      "transcript": {"displayName": "Live Transcript", "purpose": "The largest working content while speech is active or recoverable."},
-      "title": {"displayName": "Section Title", "purpose": "Caption regions, settings groups, and editorial section headings."},
-      "body": {"displayName": "Body", "purpose": "Instructions and product explanations."},
-      "navigation": {"displayName": "Navigation", "purpose": "Persistent rail destinations."},
-      "button": {"displayName": "Control", "purpose": "Compact, high-clarity action labels."},
-      "label": {"displayName": "Metadata", "purpose": "Field labels, status details, and supporting values."},
-      "eyebrow": {"displayName": "Editorial Eyebrow", "purpose": "Tracked orientation labels above a region."},
-      "input": {"displayName": "Input", "purpose": "Readable user-entered settings and personalization data."}
+      "display": {"displayName":"View Display","purpose":"One compact title for each main view."},
+      "transcript": {"displayName":"Live Transcript","purpose":"Live or last-completed dictated text."},
+      "title": {"displayName":"Section Title","purpose":"Caption, memory, settings, and subsection headings."},
+      "body": {"displayName":"Utility Body","purpose":"Descriptions, history text, and working copy."},
+      "navigation": {"displayName":"Rail Navigation","purpose":"Persistent navigation destinations."},
+      "button": {"displayName":"Action Label","purpose":"Primary, secondary, text, and perch actions."},
+      "label": {"displayName":"Compact Label","purpose":"Field names, statuses, and settings descriptions."},
+      "metadata": {"displayName":"Metadata","purpose":"Timestamps, preview notes, and compact support."},
+      "input": {"displayName":"Input Text","purpose":"Editable and selectable control values."}
     },
     "shadows": [
-      {"name": "focus-halo", "value": "0 0 0 3px rgba(138, 165, 34, 0.36)", "purpose": "Visible keyboard focus across controls."},
-      {"name": "caption-stage", "value": "0 18px 48px rgba(35, 27, 40, 0.08)", "purpose": "Ambient lift for the one composed caption instrument."},
-      {"name": "transport", "value": "0 18px 48px rgba(35, 27, 40, 0.12)", "purpose": "Grounds the dark transport below the caption field."},
-      {"name": "floating-overlay", "value": "0 16px 38px rgba(13, 9, 15, 0.34)", "purpose": "Separates the non-focus-stealing recording overlay from other apps."}
+      {"name":"focus-halo","value":"0 0 0 3px rgba(103, 148, 64, 0.3)","purpose":"Keyboard focus and active fields."},
+      {"name":"caption-float","value":"0 18px 48px rgba(20, 58, 49, 0.08)","purpose":"Light lift beneath the caption stage."},
+      {"name":"perch-float","value":"0 18px 48px rgba(16, 58, 49, 0.16)","purpose":"Grounding beneath the dark-green control band."},
+      {"name":"primary-feather","value":"0 8px 20px rgba(86, 119, 33, 0.22)","purpose":"Resting hands-free action."},
+      {"name":"floating-bird","value":"0 16px 38px rgba(7, 35, 28, 0.34)","purpose":"Non-focus-stealing recording overlay."}
     ],
     "motion": [
-      {"name": "state-standard", "value": "150ms ease-out", "purpose": "Hover, color, border, and transform feedback."},
-      {"name": "record-breathe", "value": "1.6s ease-in-out infinite", "purpose": "Reinforces active recording on the Finish control."},
-      {"name": "status-pulse", "value": "1.3s ease-in-out infinite", "purpose": "Reinforces active recording in the engine-status dot."},
-      {"name": "overlay-meter", "value": "620ms ease-in-out infinite alternate", "purpose": "Animates the compact recording meter without simulating audio precision."}
+      {"name":"state-standard","value":"150ms ease-out","purpose":"Button, navigation, and disclosure state changes."},
+      {"name":"press","value":"120ms ease-out","purpose":"One-pixel button press response."},
+      {"name":"toggle","value":"160ms ease-out","purpose":"Switch track and thumb movement."},
+      {"name":"record-breathe","value":"1.6s ease-in-out infinite","purpose":"Restrained active-recording pulse."},
+      {"name":"status-pulse","value":"1.3s ease-in-out infinite","purpose":"Recording status dot pulse."}
     ],
     "breakpoints": [
-      {"name": "compact-rail", "value": "980px"},
-      {"name": "minimum-window", "value": "780px"}
+      {"name":"compact-rail","value":"980px"},
+      {"name":"minimum-window","value":"780px"}
     ]
   },
   "components": [
     {
-      "name": "Primary Button",
-      "kind": "button",
-      "refersTo": "button-primary",
-      "description": "The single chartreuse command action used for the current primary task.",
-      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
-      "css": ".ds-btn-primary{height:38px;padding:0 16px;border:1px solid #d9ff57;border-radius:8px;background:#d9ff57;color:#17131c;font:680 13px 'Schibsted Grotesk',Arial,sans-serif;transition:background 150ms ease-out,transform 120ms ease-out}.ds-btn-primary:hover{background:#c7ee3d;border-color:#c7ee3d}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(138,165,34,.36)}"
+      "name":"Primary Button","kind":"button","refersTo":"button-primary","description":"Primary add or save action.",
+      "html":"<button class=\"ds-button-primary\">Add word</button>",
+      "css":".ds-button-primary { min-height:38px; padding:0 16px; border:1px solid var(--accent); border-radius:8px; color:var(--ink-strong); background:var(--accent); font:680 13px \"Onest\", Arial, sans-serif; transition:background 150ms ease-out, border-color 150ms ease-out, transform 120ms ease-out; } .ds-button-primary:hover { border-color:var(--accent-hover); background:var(--accent-hover); } .ds-button-primary:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(103,148,64,.3); } .ds-button-primary:active { transform:translateY(1px); }"
     },
     {
-      "name": "Hands-free Command",
-      "kind": "button",
-      "refersTo": "button-record",
-      "description": "The signature chartreuse microphone action that becomes coral while recording.",
-      "html": "<button class=\"ds-btn-record\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"8\" y=\"3\" width=\"8\" height=\"12\" rx=\"4\"></rect><path d=\"M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7\"></path></svg><span>Hands-free</span></button>",
-      "css": ".ds-btn-record{display:flex;width:134px;height:50px;align-items:center;justify-content:center;gap:9px;border:1px solid #d9ff57;border-radius:11px;background:#d9ff57;color:#17131c;font:720 13px 'Schibsted Grotesk',Arial,sans-serif}.ds-btn-record svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.ds-btn-record:hover{background:#c7ee3d}.ds-btn-record:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(138,165,34,.36)}"
+      "name":"Secondary Button","kind":"button","refersTo":"button-secondary","description":"Quiet recovery or system action.",
+      "html":"<button class=\"ds-button-secondary\">Paste previous</button>",
+      "css":".ds-button-secondary { min-height:38px; padding:0 14px; border:1px solid var(--line-strong); border-radius:8px; color:var(--ink); background:transparent; font:680 13px \"Onest\", Arial, sans-serif; transition:background 150ms ease-out, border-color 150ms ease-out, transform 120ms ease-out; } .ds-button-secondary:hover { border-color:#94aa9d; background:rgba(255,255,255,.08); } .ds-button-secondary:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(103,148,64,.3); } .ds-button-secondary:active { transform:translateY(1px); }"
     },
     {
-      "name": "Text Field",
-      "kind": "input",
-      "refersTo": "input",
-      "description": "A quiet caption-white field with a strong editorial rule.",
-      "html": "<label class=\"ds-field\"><span>Spoken cue</span><input value=\"my portfolio\" /></label>",
-      "css": ".ds-field{display:grid;gap:7px;color:#564e5c;font:650 12px 'Schibsted Grotesk',Arial,sans-serif}.ds-field input{height:42px;padding:0 11px;border:1px solid #c5bdca;border-radius:8px;outline:none;background:#fbf9fc;color:#29232d;font:400 15px 'Schibsted Grotesk',Arial,sans-serif}.ds-field input:focus{border-color:#9dbb31;box-shadow:0 0 0 3px rgba(138,165,34,.36)}"
+      "name":"Hands-Free Feather","kind":"button","refersTo":"button-record","description":"Signature dictation command with a clipped lower-left feather corner.",
+      "html":"<button class=\"ds-record\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"8\" y=\"3\" width=\"8\" height=\"12\" rx=\"4\"></rect><path d=\"M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7\"></path></svg><span>Hands-free</span></button>",
+      "css":".ds-record { display:inline-flex; min-width:118px; height:50px; align-items:center; justify-content:center; gap:9px; padding:0 15px; border:1px solid var(--accent); border-radius:13px 13px 13px 5px; color:var(--ink-strong); background:var(--accent); box-shadow:0 8px 20px rgba(86,119,33,.22); font:720 13px \"Onest\", Arial, sans-serif; transition:background 150ms ease-out, transform 150ms ease-out, box-shadow 150ms ease-out; } .ds-record svg { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; } .ds-record:hover { background:var(--accent-hover); box-shadow:0 10px 24px rgba(86,119,33,.3); transform:translateY(-1px); } .ds-record:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(103,148,64,.3); } .ds-record:active { transform:translateY(1px); }"
     },
     {
-      "name": "Navigation Item",
-      "kind": "nav",
-      "refersTo": "navigation-item",
-      "description": "A flat rail destination whose active state is carried by a chartreuse edge tick.",
-      "html": "<button class=\"ds-nav-item ds-active\"><svg viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M3.5 8.5 10 3l6.5 5.5v8H12v-5H8v5H3.5v-8Z\"></path></svg><span>Home</span></button>",
-      "css": ".ds-nav-item{position:relative;display:flex;width:160px;height:43px;align-items:center;gap:11px;padding:0 11px;border:0;border-radius:9px;background:transparent;color:#aca3b4;font:570 14px 'Schibsted Grotesk',Arial,sans-serif}.ds-nav-item svg{width:19px;height:19px;fill:currentColor}.ds-nav-item:hover,.ds-nav-item.ds-active{color:#fbf9fc}.ds-nav-item.ds-active:before{position:absolute;top:12px;bottom:12px;left:-13px;width:3px;border-radius:0 3px 3px 0;background:#d9ff57;content:''}.ds-nav-item:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(138,165,34,.36)}"
+      "name":"Search Field","kind":"input","refersTo":"input","description":"History search with a compact leading icon.",
+      "html":"<label class=\"ds-search\"><svg viewBox=\"0 0 20 20\" aria-hidden=\"true\"><circle cx=\"8.5\" cy=\"8.5\" r=\"5\"></circle><path d=\"m12.25 12.25 4 4\"></path></svg><input type=\"search\" placeholder=\"Search dictations\"></label>",
+      "css":".ds-search { display:flex; height:44px; align-items:center; gap:10px; padding:0 13px; border:1px solid var(--line-strong); border-radius:9px; background:var(--surface); } .ds-search svg { width:18px; height:18px; fill:none; stroke:var(--muted); stroke-width:1.6; stroke-linecap:round; } .ds-search input { width:100%; height:100%; border:0; outline:0; color:var(--ink); background:transparent; font:400 15px \"Onest\", Arial, sans-serif; } .ds-search:hover { border-color:#94aa9d; } .ds-search:focus-within { border-color:#76a943; box-shadow:0 0 0 3px rgba(103,148,64,.3); }"
     },
     {
-      "name": "Caption Stage",
-      "kind": "custom",
-      "refersTo": "caption-stage",
-      "description": "The central live-caption field joined to a narrow session-memory shelf.",
-      "html": "<section class=\"ds-stage\"><div class=\"ds-live\"><small>NOW</small><strong>Live transcript</strong><p>Your words appear here while you speak.</p></div><aside><small>THIS SESSION</small><strong>Memory</strong><span>Your recent takes stay recoverable.</span></aside></section>",
-      "css": ".ds-stage{display:grid;width:680px;min-height:280px;grid-template-columns:1fr 220px;overflow:hidden;border:1px solid #dcd5e0;border-radius:16px 16px 0 0;background:#fbf9fc;color:#29232d;box-shadow:0 18px 48px rgba(35,27,40,.08);font-family:'Schibsted Grotesk',Arial,sans-serif}.ds-live{padding:27px 30px;border-right:1px solid #dcd5e0}.ds-stage aside{display:grid;align-content:start;gap:8px;padding:27px 22px;background:#f1edf3}.ds-stage small{color:#564e5c;font-size:11px;font-weight:720;letter-spacing:.12em}.ds-stage strong{font-size:17px}.ds-stage p{margin-top:42px;color:#8e8593;font-size:24px;line-height:1.48}.ds-stage span{margin-top:24px;color:#746c79;font-size:12px}"
+      "name":"Rail Navigation Item","kind":"nav","refersTo":"navigation-item","description":"Persistent destination with a chartreuse active-edge tick.",
+      "html":"<button class=\"ds-nav active\"><svg viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M3.5 8.5 10 3l6.5 5.5v8H12v-5H8v5H3.5v-8Z\"></path></svg><span>Home</span></button>",
+      "css":".ds-nav { position:relative; display:flex; width:158px; min-height:43px; align-items:center; gap:11px; padding:0 11px; border:0; border-radius:9px; color:var(--sidebar-muted); background:var(--sidebar); font:570 14px \"Onest\", Arial, sans-serif; text-align:left; transition:color 150ms ease-out, background 150ms ease-out; } .ds-nav::before { position:absolute; top:12px; bottom:12px; left:-13px; width:3px; border-radius:0 3px 3px 0; background:transparent; content:\"\"; } .ds-nav svg { width:19px; height:19px; fill:currentColor; stroke:none; } .ds-nav:hover { color:var(--sidebar-active); background:rgba(255,255,255,.07); } .ds-nav.active { color:var(--sidebar-active); } .ds-nav.active::before { background:var(--accent); } .ds-nav:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(103,148,64,.3); }"
     },
     {
-      "name": "Dictation Transport",
-      "kind": "custom",
-      "refersTo": "dictation-transport",
-      "description": "One dark control band holding dictation, shortcut, timer, recovery, and cancellation.",
-      "html": "<div class=\"ds-transport\"><button>Hands-free</button><strong>Hold <kbd>Ctrl + Space</kbd> to dictate</strong><time>00:00</time><span>Paste previous</span></div>",
-      "css": ".ds-transport{display:grid;width:680px;height:88px;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:16px 18px;border-radius:0 0 16px 16px;background:#17131c;color:#f8f5fa;box-shadow:0 18px 48px rgba(35,27,40,.12);font:500 13px 'Schibsted Grotesk',Arial,sans-serif}.ds-transport button{height:50px;padding:0 15px;border:0;border-radius:11px;background:#d9ff57;color:#17131c;font-weight:720}.ds-transport kbd{padding:5px 8px;border:1px solid #615967;border-radius:6px;background:#2a2430;color:#f8f5fa}.ds-transport time{color:#bfb7c4}.ds-transport span{padding:10px;border:1px solid #4a424f;border-radius:8px}"
+      "name":"Toggle Row","kind":"custom","description":"Direct setting with explanation and leaf-green checked state.",
+      "html":"<label class=\"ds-toggle\"><span><strong>Remove filler words</strong><small>Clean up pauses and abandoned corrections.</small></span><input type=\"checkbox\" checked><i aria-hidden=\"true\"></i></label>",
+      "css":".ds-toggle { position:relative; display:grid; min-height:58px; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:22px; padding:8px 0; border-bottom:1px solid var(--line); color:var(--ink); font-family:\"Onest\", Arial, sans-serif; cursor:pointer; } .ds-toggle > span { display:grid; gap:4px; } .ds-toggle strong { font-size:13px; font-weight:660; } .ds-toggle small { color:var(--muted); font-size:12px; line-height:1.45; } .ds-toggle input { position:absolute; width:1px; height:1px; opacity:0; } .ds-toggle i { position:relative; width:40px; height:23px; border-radius:99px; background:#9bafa5; transition:background 160ms ease-out; } .ds-toggle i::after { position:absolute; top:3px; left:3px; width:17px; height:17px; border-radius:50%; background:#fff; box-shadow:0 2px 5px rgba(20,58,49,.24); content:\"\"; transition:transform 160ms ease-out; } .ds-toggle input:checked + i { background:#679440; } .ds-toggle input:checked + i::after { transform:translateX(17px); } .ds-toggle input:focus-visible + i { box-shadow:0 0 0 3px rgba(103,148,64,.3); }"
     },
     {
-      "name": "Toggle Row",
-      "kind": "custom",
-      "description": "A rule-led settings row with a restrained chartreuse-derived checked state.",
-      "html": "<label class=\"ds-toggle\"><span><strong>Remove filler words</strong><small>Clean up verbal hesitation.</small></span><i aria-hidden=\"true\"></i></label>",
-      "css": ".ds-toggle{display:grid;width:420px;min-height:58px;grid-template-columns:1fr auto;gap:22px;align-items:center;padding:8px 0;border-bottom:1px solid #dcd5e0;color:#29232d;font-family:'Schibsted Grotesk',Arial,sans-serif}.ds-toggle span{display:grid;gap:4px}.ds-toggle strong{font-size:13px}.ds-toggle small{color:#746c79;font-size:12px}.ds-toggle i{position:relative;width:40px;height:23px;border-radius:99px;background:#7f981d}.ds-toggle i:after{position:absolute;top:3px;right:3px;width:17px;height:17px;border-radius:50%;background:#fff;content:''}"
+      "name":"Perched Caption","kind":"custom","refersTo":"caption-stage","description":"The live field, session memory, and dark-green dictation perch as one instrument.",
+      "html":"<section class=\"ds-stage\"><div class=\"ds-live\"><strong>Live transcript</strong><p>Your words will appear here as you speak.</p></div><aside class=\"ds-memory\"><strong>Memory</strong><small>Recent takes stay here.</small></aside><footer class=\"ds-perch\"><button>Hands-free</button><span>Hold Ctrl + Space to dictate</span></footer></section>",
+      "css":".ds-stage { display:grid; width:680px; grid-template-columns:minmax(0,1fr) 190px; overflow:hidden; border-radius:18px; color:var(--ink); background:var(--surface); box-shadow:0 18px 48px rgba(20,58,49,.08); font-family:\"Onest\", Arial, sans-serif; } .ds-live { min-height:250px; padding:27px 30px; border-right:1px solid var(--line); } .ds-live strong,.ds-memory strong { color:var(--ink-strong); font-size:17px; font-weight:690; } .ds-live p { margin:48px 0 0; color:var(--muted); font-size:25px; font-weight:480; line-height:1.48; letter-spacing:-.018em; } .ds-memory { padding:27px 22px; background:#f0f5ee; } .ds-memory small { display:block; margin-top:18px; color:var(--muted); font-size:11px; } .ds-perch { display:flex; min-height:88px; grid-column:1/-1; align-items:center; gap:16px; padding:16px 18px; color:var(--sidebar-active); background:var(--sidebar); box-shadow:0 18px 48px rgba(16,58,49,.16); } .ds-perch button { height:50px; padding:0 15px; border:0; border-radius:13px 13px 13px 5px; color:var(--ink-strong); background:var(--accent); font:720 13px \"Onest\", Arial, sans-serif; } .ds-perch button:hover { background:var(--accent-hover); } .ds-perch button:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(103,148,64,.3); } .ds-perch span { font-size:15px; font-weight:690; }"
     },
     {
-      "name": "Recording Overlay",
-      "kind": "custom",
-      "refersTo": "overlay",
-      "description": "The compact non-focus-stealing status strip shown over another application.",
-      "html": "<div class=\"ds-overlay\"><div class=\"ds-signal\"><span></span><span></span><span></span></div><div><strong>Listening</strong><p>Hands-free dictation is active.</p></div><small>HANDS-FREE</small></div>",
-      "css": ".ds-overlay{display:grid;width:420px;height:58px;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:0 13px 0 8px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:#17131c;color:#faf8fb;box-shadow:0 16px 38px rgba(13,9,15,.34);font-family:'Schibsted Grotesk',Arial,sans-serif}.ds-signal{display:flex;width:42px;height:42px;align-items:center;justify-content:center;gap:3px;border-radius:9px;background:#c84046}.ds-signal span{width:3px;height:14px;border-radius:3px;background:#fff}.ds-overlay p{margin:3px 0 0;color:#b6aeba;font-size:11px}.ds-overlay small{color:#b6aeba;font-size:11px;font-weight:650}"
+      "name":"Recording Overlay","kind":"custom","refersTo":"overlay","description":"Floating state strip using the canonical bird as its signal.",
+      "html":"<div class=\"ds-overlay\"><span class=\"ds-bird\"><svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><path fill=\"#4F9A58\" d=\"M27.9 36.8c1.8 5.6 1.3 12.4-1.5 20.4L23.7 64l-5.8-4.9c2.5-9.9 2.3-17.4-.5-22.5l10.5.2Z\"/><path fill=\"#91CF4E\" d=\"M34.1 35.5c1.3 5.2.3 11.6-3 19.2L27.1 64l-4.5-6.6c3.5-9.4 3.6-16.5.3-21.4l11.2-.5Z\"/><path fill=\"#123F35\" d=\"M18 10.7C23.5 3.5 35 2 42.8 7.5c6.8 4.8 9.2 13.8 5.3 21.3-2.6 5.1-7 8.4-12.6 11.1-4.7 2.3-6.9 7.7-6.7 16.2l-7.5-6.5c-4.6-5.9-7.1-12.7-7.5-20.4-.4-8.2 1-14.4 4.2-18.5Z\"/><path fill=\"#C7EE57\" d=\"M17.1 23.4c5.8-3.7 13.3-2.1 17.1 3.7 3.8 5.9 1.6 14.3-7.5 20.4-4.5-4-7.6-8.8-9.2-14.4-1-3.6-1.2-6.8-.4-9.7Z\"/><path fill=\"#78B844\" d=\"M19.1 26.4c4.3-.5 8.7 1.4 11 4.8 2.3 3.5 2.2 7.6-.4 11.7-3.7-3.1-6.4-6.8-8.1-11.1-1-2.2-1.8-4-2.5-5.4Z\"/><path fill=\"#F4F6E9\" d=\"M31.9 8.5c7.2-1.2 13.7 3.2 15.6 10.3-2.2-1.2-4.7-1.6-7.1-1.1-3.6.7-6.2 3.1-7.4 6.6-4-1.4-6.5-4.4-6.8-8.1-.3-3.8 1.8-6.7 5.7-7.7Z\"/><path fill=\"#FF7259\" d=\"M42.8 11.4c8.5.1 14.5 4.2 17.4 11.1-4.5-.3-8.1 1-10.8 4-1.2-6.8-3.4-11.8-6.6-15.1Z\"/><path fill=\"#E85143\" d=\"M49.4 26.5c4.3.1 7.9-1.2 10.8-4-.7 6.7-4.2 10.6-10.5 11.8 1-2.5.9-5.1-.3-7.8Z\"/><circle cx=\"36.7\" cy=\"13.1\" r=\"2.45\" fill=\"#123F35\"/><circle cx=\"37.45\" cy=\"12.35\" r=\".7\" fill=\"#F4F6E9\"/></svg></span><span class=\"ds-overlay-copy\"><strong>Listening</strong><small>Parrot is transcribing locally.</small></span><b>HANDS-FREE</b></div>",
+      "css":".ds-overlay { display:grid; width:420px; height:58px; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px; padding:0 13px 0 8px; border:1px solid rgba(255,255,255,.12); border-radius:15px; color:var(--sidebar-active); background:var(--sidebar); box-shadow:0 16px 38px rgba(7,35,28,.34); font-family:\"Onest\", Arial, sans-serif; } .ds-bird { display:grid; width:42px; height:42px; place-items:center; border-radius:11px; background:#f1f6e8; } .ds-bird svg { width:34px; height:34px; } .ds-overlay-copy { display:grid; gap:3px; min-width:0; } .ds-overlay-copy strong { font-size:13px; font-weight:680; } .ds-overlay-copy small,.ds-overlay b { color:var(--sidebar-muted); font-size:11px; } .ds-overlay:hover { border-color:rgba(255,255,255,.2); } .ds-overlay:focus-within { box-shadow:0 0 0 3px rgba(103,148,64,.3),0 16px 38px rgba(7,35,28,.34); }"
     }
   ],
   "narrative": {
-    "northStar": "The Caption Stage",
-    "overview": "Parrot is a broadcast-caption desk for live speech: focused, editorial, and visibly local. An aubergine rail anchors the application, a chalk-lavender field keeps the room quiet, and parrot chartreuse marks the command that matters now. Live words occupy the largest typographic surface while recent takes remain close enough to recover without turning the experience into a dashboard.\n\nThe interface behaves as one composed instrument. A light caption stage and its dark bottom transport form a single silhouette; rules, not nested cards, organize the rest of the product. Schibsted Grotesk gives headings a compact editorial snap and keeps working text human and readable across the minimum and standard window sizes.",
-    "keyCharacteristics": [
-      "Aubergine, chalk-lavender, and one chartreuse command signal.",
-      "Live transcript as the largest working type.",
-      "One composed caption stage with attached transport.",
-      "Editorial rules and flat rows instead of stacked cards.",
-      "Explicit local, recording, and recovery states.",
-      "Responsive rail compression without losing the primary workflow."
+    "northStar":"The Perched Caption",
+    "overview":"Parrot is the quiet bird at the edge of work: present, recognizable, and ready to catch speech without asking the user to enter a separate AI world. A literal geometric parrot anchors the forest rail, pale mineral surfaces hold the live text, and a dark-green perch carries every dictation control.\n\nThe system is calm and editorial rather than dashboard-like. Live words own the largest working type; recent takes remain visible at the right edge; thin rules organize secondary views. The bird appears as the canonical mark, as a faint watermark on the caption field, and as the signal inside the floating overlay without becoming decorative clutter.",
+    "keyCharacteristics":[
+      "Literal right-facing geometric parrot with a hidden P silhouette.",
+      "Jungle-green rail and control perch against pale mineral fields.",
+      "Leaf and wing chartreuse reserved for commands, focus, and readiness.",
+      "Coral beak color echoed only in recording and destructive states.",
+      "Onest typography, ruled secondary views, and clipped feather-like control corners."
     ],
-    "rules": [
-      {"name": "One Command Signal", "body": "Chartreuse identifies the actionable or current command channel; it never becomes a decorative field color.", "section": "colors"},
-      {"name": "State Has Meaning", "body": "Ready green, working amber, and recording coral are semantic and always accompanied by readable state text.", "section": "colors"},
-      {"name": "Caption Owns Scale", "body": "Live transcript text is the largest working content on screen; settings and metadata never compete with it.", "section": "typography"},
-      {"name": "Editorial Label", "body": "Use uppercase, tracked eyebrows only to orient a region, never as repeated decoration or body copy.", "section": "typography"},
-      {"name": "Center Voice, Right Memory", "body": "On the live surface, the caption always receives the flexible center while recoverable session memory holds a narrower right edge.", "section": "layout"},
-      {"name": "One Transport", "body": "Hands-free, push-to-talk guidance, timer, recovery, and cancellation belong to one bottom control band.", "section": "layout"},
-      {"name": "Instrument, Not Cards", "body": "Elevate the caption stage as one instrument; persistent rows, settings sections, and history remain flat and rule-led.", "section": "elevation"},
-      {"name": "Composite Stage", "body": "The light stage and dark transport must read as one object; never separate them into independent floating cards.", "section": "shapes"},
-      {"name": "Editorial Edge", "body": "Use borders and edge ticks for hierarchy before introducing additional rounded containers.", "section": "shapes"}
+    "rules":[
+      {"name":"The Plumage Has Jobs Rule","body":"Chartreuse marks commands and readiness, coral marks recording or destructive state, and neither becomes an ornamental field color.","section":"colors"},
+      {"name":"The Bird Is the Brand Rule","body":"Use the canonical full-color SVG; never trace, recolor, outline, animate, or redraw its geometry.","section":"colors"},
+      {"name":"The Caption Owns Scale Rule","body":"Live transcript text is the largest working content; settings and metadata never compete with it.","section":"typography"},
+      {"name":"The Live Wordmark Rule","body":"Set “Parrot” as live Onest text at weight 740 beside the mark; never convert it to paths or place it inside the bird tile.","section":"typography"},
+      {"name":"The Center Voice, Right Memory Rule","body":"Live speech receives the flexible center while recoverable session memory holds the narrower right edge.","section":"layout"},
+      {"name":"The One Perch Rule","body":"Hands-free, push-to-talk guidance, timer, recovery, and cancellation belong to one dark-green bottom band.","section":"layout"},
+      {"name":"The Instrument, Not Cards Rule","body":"Elevate the caption and perch as one instrument; persistent rows, settings, and history remain flat.","section":"elevation"},
+      {"name":"The Perched Silhouette Rule","body":"The caption and control perch read as one object; never split them into independent cards.","section":"shapes"},
+      {"name":"The Feather Cut Rule","body":"Asymmetric clipping belongs to the primary dictation action, not every control.","section":"shapes"}
     ],
-    "dos": [
+    "dos":[
+      "Do use the canonical literal bird consistently across shell, overlay, tray, installer, and release assets.",
       "Do give live speech the flexible center and largest working type.",
-      "Do keep chartreuse concentrated on the current command, focus, active rail tick, and local signal.",
-      "Do keep session memory visible beside the live caption at supported desktop widths.",
-      "Do use editorial rules and shared edges to organize history, settings, and personalization.",
-      "Do pair every colored state with explicit text, visible keyboard focus, and reduced-motion behavior.",
-      "Do preserve the single composed silhouette between the live stage and bottom transport."
+      "Do keep chartreuse concentrated on commands, focus, active rail tick, and local readiness.",
+      "Do use coral only for the beak, recording, destructive actions, and errors.",
+      "Do organize secondary views with mineral fields, shared edges, and thin stem rules.",
+      "Do preserve visible keyboard focus, text state labels, reduced-motion behavior, and the optical tray crop."
     ],
-    "donts": [
-      "Don't split the caption stage, memory, and transport into separate rounded cards.",
-      "Don't reintroduce the generic cool-gray, cobalt, and Segoe dashboard identity.",
-      "Don't use decorative gradients, ornamental waveforms, badge collections, or oversized AI-marketing headlines.",
-      "Don't fill every active navigation item or content section with a rounded pill.",
-      "Don't place engine, model, thread, or diagnostic controls before everyday dictation behavior.",
+    "donts":[
+      "Don't trace, recolor, animate, outline, or decorate the canonical bird.",
+      "Don't split caption, memory, and perch into separate rounded cards.",
+      "Don't return to an anonymous gray-and-blue dictation dashboard.",
+      "Don't use gradients, ornamental waveforms, badge collections, or oversized AI-marketing headlines.",
+      "Don't apply the feather cut to ordinary controls or fill active navigation with pills.",
       "Don't copy another dictation product's branding, assets, wording, colors, or pixel-level layout."
     ]
   }

@@ -1,6 +1,6 @@
 {
   "name": "project-parrot-desktop",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Private, local-first Windows dictation from anywhere.",
   "main": "desktop/main.js",
@@ -14,6 +14,7 @@
     "check": "node --check desktop/main.js && node --check desktop/preload.js && node --check desktop/renderer.js && node --check desktop/overlay.js && node --check desktop/settings.js",
     "test": "npm run check && node --test desktop/*.test.js",
     "test:e2e": "node --test desktop/e2e.electron.js",
+    "capture:ui": "node scripts/capture_desktop.cjs",
     "verify:live-stt": "python scripts/verify_live_stt.py --engine parakeet",
     "pack": "electron-builder --dir --win",
     "dist": "electron-builder --win nsis --publish never"

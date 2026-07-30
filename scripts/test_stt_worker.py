@@ -5,8 +5,11 @@ import numpy as np
 from scripts.stt_worker import (
     FINAL_TRAILING_PADDING_SECONDS,
     FINAL_DIRECT_PASS_SECONDS,
+    FINAL_TAIL_RESCUE_MIN_SECONDS,
+    collapse_live_duplicate,
     merge_rolling_transcript,
     merge_final_segments,
+    next_live_sample_target,
     prepare_final_audio,
     recover_live_tail,
     split_final_audio,
@@ -67,6 +70,70 @@ class MergeRollingTranscriptTests(unittest.TestCase):
 
         self.assertEqual(merged, "this is already visible")
 
+    def test_replaces_a_tiny_startup_hypothesis_after_name_revision(self):
+        merged = merge_rolling_transcript(
+            "mister Quilton's",
+            "mister Quilter is the apostle of the middle classes",
+        )
+
+        self.assertEqual(
+            merged,
+            "mister Quilter is the apostle of the middle classes",
+        )
+
+    def test_does_not_append_an_unanchored_overlapping_window_twice(self):
+        previous = (
+            "Mister Carker used to flash his teeth and Mister John Collier "
+            "gives his sitter a cheerful slap"
+        )
+        current = (
+            "And Mr John Collier gives his sitter a cheerful slap on the back "
+            "before he says next man"
+        )
+
+        merged = merge_rolling_transcript(previous, current)
+
+        self.assertEqual(
+            merged,
+            "Mister Carker used to flash his teeth And Mr John Collier "
+            "gives his sitter a cheerful slap on the back before he says next man",
+        )
+
+    def test_collapses_a_revised_clause_duplicated_inside_live_output(self):
+        duplicated = (
+            "Mister Carker used to flash his teeth. And Mr. John Collier gives "
+            "his sitter a cheerful slap And mister John Audio gives His sitter "
+            "a cheerful slap on the back before he says next man."
+        )
+
+        self.assertEqual(
+            collapse_live_duplicate(duplicated),
+            "Mister Carker used to flash his teeth. And Mr. John Collier gives "
+            "his sitter a cheerful slap on the back before he says next man.",
+        )
+
+    def test_keeps_short_intentional_repetition(self):
+        self.assertEqual(
+            collapse_live_duplicate(
+                "this is very very important and I really really mean it"
+            ),
+            "this is very very important and I really really mean it",
+        )
+
+
+class LiveCadenceTests(unittest.TestCase):
+    def test_schedules_from_new_audio_when_recognition_is_fast(self):
+        self.assertEqual(
+            next_live_sample_target(16_000, 16_000, 1.0, 0.4),
+            32_000,
+        )
+
+    def test_coalesces_audio_when_recognition_is_slower_than_requested_rate(self):
+        self.assertEqual(
+            next_live_sample_target(16_000, 16_000, 1.0, 2.0),
+            56_000,
+        )
+
 
 class SplitFinalAudioTests(unittest.TestCase):
     def test_ordinary_long_dictation_uses_one_context_preserving_pass(self):
@@ -86,7 +153,7 @@ class SplitFinalAudioTests(unittest.TestCase):
                 return "complete transcript"
 
         model = FakeParakeet()
-        text, chunk_count = transcribe_final(
+        text, chunk_count, used_tail_rescue = transcribe_final(
             "parakeet",
             model,
             audio,
@@ -95,7 +162,41 @@ class SplitFinalAudioTests(unittest.TestCase):
 
         self.assertEqual(text, "complete transcript")
         self.assertEqual(chunk_count, 1)
-        self.assertEqual(model.calls, 1)
+        self.assertFalse(used_tail_rescue)
+        self.assertEqual(model.calls, 2)
+
+    def test_dedicated_tail_pass_restores_words_missing_from_long_final(self):
+        sample_rate = 100
+        timeline = np.arange(
+            int(sample_rate * (FINAL_TAIL_RESCUE_MIN_SECONDS + 1)),
+            dtype=np.float32,
+        )
+        audio = np.sin(timeline * 0.2).astype(np.float32)
+
+        class FakeParakeet:
+            def __init__(self):
+                self.calls = 0
+
+            def recognize(self, samples, sample_rate):
+                self.calls += 1
+                if self.calls == 1:
+                    return "the long dictation reaches its final section"
+                return "final section and preserves the last three words"
+
+        model = FakeParakeet()
+        text, chunk_count, used_tail_rescue = transcribe_final(
+            "parakeet",
+            model,
+            audio,
+            sample_rate,
+        )
+
+        self.assertEqual(
+            text,
+            "the long dictation reaches its final section and preserves the last three words",
+        )
+        self.assertEqual(chunk_count, 1)
+        self.assertTrue(used_tail_rescue)
 
     def test_long_audio_is_fully_covered_by_overlapping_chunks(self):
         sample_rate = 100
@@ -225,3 +326,4 @@ class RecoverLiveTailTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+    collapse_live_duplicate,

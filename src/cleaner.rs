@@ -1,14 +1,11 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use regex::Regex;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-const PROTECTED_WORDS: [&str; 24] = [
-    "and", "so", "but", "well", "okay", "ok", "now", "then", "because", "like", "mean", "know",
-    "think", "i", "you", "we", "they", "can", "could", "will", "would", "should", "must", "not",
-];
 const MAX_CLEANUP_WORDS: usize = 320;
 
 #[derive(Clone)]
@@ -49,7 +46,10 @@ impl OllamaCleaner {
                 active_window.trim()
             )
         };
-        let chunks = split_cleanup_chunks(transcript, MAX_CLEANUP_WORDS);
+        // Recognition repair is deliberately deterministic and tiny. Qwen is
+        // never allowed to decide which words the user meant.
+        let repaired = apply_known_recognition_repairs(transcript);
+        let chunks = split_cleanup_chunks(&repaired, MAX_CLEANUP_WORDS);
         let mut cleaned_chunks = Vec::with_capacity(chunks.len());
         for chunk in chunks {
             cleaned_chunks.push(self.clean_segment(&chunk, &context, developer_context)?);
@@ -64,25 +64,18 @@ impl OllamaCleaner {
         developer_context: bool,
     ) -> Result<String> {
         let prompt = build_prompt(transcript, context);
-        let cleaned = reconcile_candidate(transcript, &self.generate(&prompt)?);
-        if !cleaned.is_empty() && preserves_content(transcript, &cleaned) {
+        let generated = self.generate(&prompt)?;
+        let cleaned = constrain_formatter_output(
+            transcript,
+            &reconcile_candidate(transcript, &generated),
+            developer_context,
+        );
+        if !cleaned.is_empty() && same_word_sequence(transcript, &cleaned) {
             return Ok(ensure_basic_formatting(
                 &cleaned,
                 transcript,
                 developer_context,
             ));
-        }
-
-        if !cleaned.is_empty() {
-            let retry_prompt = build_preservation_retry_prompt(transcript, &cleaned, context);
-            let retried = reconcile_candidate(transcript, &self.generate(&retry_prompt)?);
-            if !retried.is_empty() && preserves_content(transcript, &retried) {
-                return Ok(ensure_basic_formatting(
-                    &retried,
-                    transcript,
-                    developer_context,
-                ));
-            }
         }
 
         Ok(ensure_basic_formatting(
@@ -125,90 +118,34 @@ impl OllamaCleaner {
 
 fn build_prompt(transcript: &str, context: &str) -> String {
     format!(
-        r#"You are Parrot's local dictation editor.
-Your job is to format speech-to-text output for pasting into the user's active app.
+        r#"You are a conservative dictation formatter. You are not an editor or writer.
 
 Context:
 {context}
 
-Use one adaptive writing style based only on the dictated text:
-- If it sounds professional, use formal punctuation and capitalization.
-- If it sounds casual, keep it casual and avoid over-punctuating.
-- If it sounds excited, preserve that energy, but do not add excitement.
-
 Rules:
-- Preserve the speaker's meaning, voice, names, facts, and sentence order.
-- This is an editor, not an author. Do not summarize, expand, or creatively rewrite.
-- Do not summarize, shorten, paraphrase, or rewrite the sentence structure.
-- Do not remove opening phrases, introductory clauses, connector words, or discourse words.
-- Keep words like "and", "so", "but", "well", "okay", "now", "then", "because", and "like" unless they are repeated stutters.
-- Never delete subject or helper phrases such as "I think", "you can", "we will", "they should", or "do not".
-- Preserve the approximate word count. The output should usually contain the same words as the input.
-- Repair a recognition slip only when the surrounding sentence makes the intended word or short phrase unambiguous. Make the smallest possible correction.
-- Examples of high-confidence recognition repair include "write into the next field" -> "write into the text field", "receive a final blow" -> "receive a final grade", and "beginners true advanced" -> "beginners through advanced students".
-- Do not leave an obvious semantic impossibility unchanged. In an evaluation or grading context, "receive a final blow" must become "receive a final grade". In a skill-range context, "beginners true advanced" must become "beginners through advanced students".
-- If a word or phrase looks wrong but you are not certain, keep it exactly.
-- Fix punctuation, capitalization, spacing, obvious speech-to-text casing, and high-confidence recognition slips.
-- Ordinary prose must start with a capital letter and end with appropriate punctuation even when the input has neither.
-- You may add punctuation marks to reflect natural speech pauses: periods, commas, question marks, colons, semicolons, em dashes, and ellipses.
-- Use ellipses for unfinished thoughts or self-interruptions, especially before phrases like "I don't know", "never mind", or "let's see".
-- You may split one raw run-on transcript into sentences.
-- If the raw text is awkward, keep the awkward wording and only make it readable with punctuation.
-- Remove filler words only when they are clearly non-semantic fillers: "um", "uh", "erm".
-- Do not remove "and", "so", "I mean", or "you know"; these may be intentional style.
-- Keep proper nouns as close to the transcript as possible unless the correction is obvious from spelling.
-- Silently determine the document shape before writing the output.
-- Infer layout from meaning; the speaker should not have to dictate "number one", "bullet", "new line", or "firstly".
-- Mandatory layout rule: if the text is a how-to, workflow, set of instructions, or staged process with three or more distinct actions, output those actions as a Markdown numbered list.
-- This mandatory rule applies even when the raw transcript has no punctuation and no spoken list markers.
-- A setup question such as "How does it work?" belongs on its own line before the numbered list. A step may contain more than one supporting sentence.
-- Do not leave a qualifying procedure as one paragraph.
-- When three or more short parallel items are clearly a collection rather than a sequence, format them as bullets.
-- Keep ordinary prose as paragraphs. Do not turn a paragraph into a list merely because it has several sentences.
-- Preserve existing numbered lists, bullet lists, code, and intentional line breaks.
-- Do not invent list items, headings, labels, or content.
-- Do not answer the text.
-- Do not add commentary.
-- Return only the formatted text.
+- Copy every word exactly once and in exactly the same order.
+- Never replace, remove, add, reorder, paraphrase, or correct words.
+- Add only necessary capitalization, sentence punctuation, and paragraph breaks.
+- Prefer periods and commas. Do not add headings, labels, quotes, commentary, semicolons, em dashes, or ellipses.
+- Keep conversational words and repetitions exactly as spoken.
+- Keep ordinary speech as prose. Do not turn it into a list just because it contains several sentences.
+- A new numbered list is allowed only when the text unmistakably describes three or more sequential actions. If uncertain, use prose.
+- Never create a bulleted list unless bullet markers already exist in the input.
+- Preserve existing code, list markers, and intentional line breaks.
+- Return only the formatted dictation.
 
-Formatting example:
-Input: How does it work? Listen carefully to the audio file. Write the text into the text field. Once you are done, click the button to have your dictation evaluated. We instantly check and correct your text.
+Procedure example:
+Input: how does it work listen to the file then write the text once you are done click evaluate
 Output:
 How does it work?
 
-1. Listen carefully to the audio file.
-2. Write the text into the text field.
-3. Once you are done, click the button to have your dictation evaluated.
-4. We instantly check and correct your text.
+1. Listen to the file.
+2. Then write the text.
+3. Once you are done, click evaluate.
 
 Dictated text:
 {transcript}
-"#
-    )
-}
-
-fn build_preservation_retry_prompt(original: &str, candidate: &str, context: &str) -> String {
-    format!(
-        r#"You are Parrot's final dictation verifier.
-The draft below has useful punctuation and layout, but it was rejected because it dropped words from the source.
-
-Context:
-{context}
-
-Requirements:
-- Keep the draft's punctuation, paragraphs, and Markdown list layout.
-- Restore every phrase from the source in its original order.
-- Never delete phrases such as "I think", "you can", "we will", "they should", or "do not".
-- Preserve connector words including "and", "so", "but", "then", and "because".
-- Keep only high-confidence acoustic repairs when context makes them certain: grading "final blow" may be "final grade"; a range from "beginners true advanced" may be "beginners through advanced students".
-- Do not summarize, answer, explain, or add new facts.
-- Return only the corrected final text.
-
-Source transcript:
-{original}
-
-Rejected formatted draft:
-{candidate}
 "#
     )
 }
@@ -239,42 +176,198 @@ fn strip_wrapping_quotes(text: &str) -> String {
     text.to_string()
 }
 
-fn preserves_content(original: &str, cleaned: &str) -> bool {
-    let original_words = important_words(original);
-    if original_words.is_empty() {
-        return true;
+fn apply_known_recognition_repairs(transcript: &str) -> String {
+    let mut repaired = transcript.to_string();
+    let lower = transcript.to_ascii_lowercase();
+
+    if lower.contains("beginners true advanced") {
+        repaired = replace_case_insensitive(
+            &repaired,
+            r"\bbeginners true advanced\b",
+            "beginners through advanced students",
+        );
     }
-    let cleaned_words = all_words(cleaned);
-    let original_all_words = all_words(original);
-    if cleaned_words.len() < (original_all_words.len() as f32 * 0.92) as usize {
-        return false;
+    if lower.contains("write") && lower.contains("field") && lower.contains("next field") {
+        repaired = replace_case_insensitive(&repaired, r"\bnext field\b", "text field");
     }
-    if cleaned_words.len() > (original_all_words.len() as f32 * 1.12) as usize + 2 {
-        return false;
-    }
-    if removed_protected_words(original, cleaned) {
-        return false;
-    }
-    original_words.iter().all(|word| {
-        cleaned_words
+    if lower.contains("final blow")
+        && ["evaluat", "grade", "dictation", "correct your text"]
             .iter()
-            .any(|candidate| close_word_match(word, candidate))
+            .any(|cue| lower.contains(cue))
+    {
+        repaired = replace_case_insensitive(&repaired, r"\bfinal blow\b", "final grade");
+    }
+
+    repaired
+}
+
+fn replace_case_insensitive(text: &str, pattern: &str, replacement: &str) -> String {
+    Regex::new(&format!("(?i){pattern}"))
+        .map(|regex| regex.replace_all(text, replacement).into_owned())
+        .unwrap_or_else(|_| text.to_string())
+}
+
+fn same_word_sequence(original: &str, cleaned: &str) -> bool {
+    all_words(original) == all_words(cleaned)
+}
+
+fn constrain_formatter_output(source: &str, candidate: &str, developer_context: bool) -> String {
+    if developer_context {
+        return candidate.trim().to_string();
+    }
+
+    let source_has_list = has_list_markers(source);
+    let candidate_has_numbered_list = has_numbered_list(candidate);
+    let candidate_has_bullets = has_bullet_list(candidate);
+    let allow_numbered_list =
+        source_has_list || (candidate_has_numbered_list && looks_like_procedure(source));
+    let allow_bullets = source_has_list;
+
+    let mut constrained = candidate
+        .replace('—', ",")
+        .replace('–', "-")
+        .replace('…', ".");
+    if !source.contains('"') && !source.contains('“') && !source.contains('”') {
+        constrained.retain(|ch| ch != '"' && ch != '“' && ch != '”');
+    }
+
+    if (candidate_has_numbered_list && !allow_numbered_list)
+        || (candidate_has_bullets && !allow_bullets)
+    {
+        constrained = strip_added_list_layout(&constrained);
+    } else if !allow_numbered_list
+        && !allow_bullets
+        && !source.contains('\n')
+        && all_words(source).len() < 120
+    {
+        constrained = constrained.split_whitespace().collect::<Vec<_>>().join(" ");
+    }
+
+    capitalize_sentence_starts(&replace_standalone_i(constrained.trim()))
+}
+
+fn replace_standalone_i(text: &str) -> String {
+    Regex::new(r"(?i)\bi\b")
+        .map(|regex| regex.replace_all(text, "I").into_owned())
+        .unwrap_or_else(|_| text.to_string())
+}
+
+fn capitalize_sentence_starts(text: &str) -> String {
+    let chars = text.chars().collect::<Vec<_>>();
+    let mut result = String::with_capacity(text.len());
+    let mut sentence_start = true;
+
+    for (index, ch) in chars.iter().copied().enumerate() {
+        if sentence_start && ch.is_alphabetic() {
+            result.extend(ch.to_uppercase());
+            sentence_start = false;
+        } else {
+            result.push(ch);
+            if ch.is_alphabetic() {
+                sentence_start = false;
+            }
+        }
+
+        if matches!(ch, '?' | '!' | '\n')
+            || (ch == '.'
+                && !(index > 0
+                    && index + 1 < chars.len()
+                    && chars[index - 1].is_ascii_digit()
+                    && chars[index + 1].is_ascii_digit()))
+        {
+            sentence_start = true;
+        }
+    }
+
+    result
+}
+
+fn has_list_markers(text: &str) -> bool {
+    text.lines().any(|line| {
+        let trimmed = line.trim_start();
+        has_numbered_prefix(trimmed)
+            || trimmed.starts_with("- ")
+            || trimmed.starts_with("* ")
+            || trimmed.starts_with("• ")
     })
 }
 
-fn removed_protected_words(original: &str, cleaned: &str) -> bool {
-    let original_words = all_words(original);
-    let cleaned_words = all_words(cleaned);
-    PROTECTED_WORDS.iter().any(|word| {
-        original_words
-            .iter()
-            .filter(|candidate| *candidate == word)
-            .count()
-            > cleaned_words
-                .iter()
-                .filter(|candidate| *candidate == word)
-                .count()
-    })
+fn has_numbered_list(text: &str) -> bool {
+    text.lines()
+        .filter(|line| has_numbered_prefix(line.trim_start()))
+        .count()
+        >= 2
+}
+
+fn has_bullet_list(text: &str) -> bool {
+    text.lines()
+        .filter(|line| {
+            let trimmed = line.trim_start();
+            trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("• ")
+        })
+        .count()
+        >= 2
+}
+
+fn has_numbered_prefix(text: &str) -> bool {
+    let digits = text.chars().take_while(|ch| ch.is_ascii_digit()).count();
+    digits > 0
+        && text
+            .chars()
+            .nth(digits)
+            .is_some_and(|ch| ch == '.' || ch == ')')
+        && text
+            .chars()
+            .nth(digits + 1)
+            .is_some_and(char::is_whitespace)
+}
+
+fn looks_like_procedure(text: &str) -> bool {
+    let lower = text.to_ascii_lowercase();
+    let explicit = [
+        "how does it work",
+        "how to ",
+        "the steps",
+        "these steps",
+        "the process",
+        "instructions",
+    ]
+    .iter()
+    .any(|cue| lower.contains(cue));
+    let transition_count = [
+        " first ",
+        " second ",
+        " third ",
+        " then ",
+        " next ",
+        " once ",
+        " after ",
+        " finally ",
+    ]
+    .iter()
+    .filter(|cue| format!(" {lower} ").contains(**cue))
+    .count();
+    all_words(text).len() >= 12 && (explicit || transition_count >= 2)
+}
+
+fn strip_added_list_layout(text: &str) -> String {
+    text.lines()
+        .map(|line| {
+            let trimmed = line.trim();
+            if has_numbered_prefix(trimmed) {
+                let digits = trimmed.chars().take_while(|ch| ch.is_ascii_digit()).count();
+                trimmed[digits + 1..].trim_start()
+            } else {
+                trimmed
+                    .strip_prefix("- ")
+                    .or_else(|| trimmed.strip_prefix("* "))
+                    .or_else(|| trimmed.strip_prefix("• "))
+                    .unwrap_or(trimmed)
+            }
+        })
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 #[derive(Debug)]
@@ -417,9 +510,7 @@ fn reconcile_candidate(original: &str, candidate: &str) -> String {
     for (anchor_original, anchor_candidate) in anchors {
         let original_gap = &original_words[previous_original..anchor_original];
         let candidate_gap = &candidate_words[previous_candidate..anchor_candidate];
-        if (!original_gap.is_empty() || !candidate_gap.is_empty())
-            && !allowed_semantic_repair(original, original_gap, candidate_gap)
-        {
+        if !original_gap.is_empty() || !candidate_gap.is_empty() {
             let source_phrase = original_gap
                 .iter()
                 .map(|word| word.surface.as_str())
@@ -466,36 +557,9 @@ fn reconcile_candidate(original: &str, candidate: &str) -> String {
     for edit in edits.into_iter().rev() {
         reconciled.replace_range(edit.start..edit.end, &edit.replacement);
     }
-    reconciled
-}
-
-fn allowed_semantic_repair(
-    full_original: &str,
-    original_words: &[WordSpan],
-    candidate_words: &[WordSpan],
-) -> bool {
-    let source = original_words
-        .iter()
-        .map(|word| word.normalized.as_str())
-        .collect::<Vec<_>>()
-        .join(" ");
-    let candidate = candidate_words
-        .iter()
-        .map(|word| word.normalized.as_str())
-        .collect::<Vec<_>>()
-        .join(" ");
-    if matches!(
-        (source.as_str(), candidate.as_str()),
-        ("blow", "grade") | ("next", "text") | ("true", "through")
-    ) {
-        return true;
-    }
-
-    source.is_empty()
-        && candidate == "students"
-        && full_original
-            .to_ascii_lowercase()
-            .contains("beginners true advanced")
+    Regex::new(r"\s+([,.;:?!])")
+        .map(|regex| regex.replace_all(&reconciled, "$1").into_owned())
+        .unwrap_or(reconciled)
 }
 
 fn ensure_basic_formatting(text: &str, source: &str, developer_context: bool) -> String {
@@ -529,17 +593,6 @@ fn ensure_basic_formatting(text: &str, source: &str, developer_context: bool) ->
     formatted
 }
 
-fn important_words(text: &str) -> Vec<String> {
-    let stopwords = [
-        "about", "after", "again", "also", "and", "are", "because", "but", "can", "for", "from",
-        "have", "into", "not", "that", "the", "these", "this", "through", "with", "you", "your",
-    ];
-    all_words(text)
-        .into_iter()
-        .filter(|word| word.len() >= 5 && !stopwords.contains(&word.as_str()))
-        .collect()
-}
-
 fn all_words(text: &str) -> Vec<String> {
     text.split(|ch: char| !ch.is_ascii_alphabetic() && ch != '\'')
         .filter(|word| !word.is_empty())
@@ -547,43 +600,11 @@ fn all_words(text: &str) -> Vec<String> {
         .collect()
 }
 
-fn close_word_match(left: &str, right: &str) -> bool {
-    if left == right {
-        return true;
-    }
-    let max_distance = if left.len() < 7 { 1 } else { 2 };
-    levenshtein_distance(left, right, max_distance) <= max_distance
-}
-
-fn levenshtein_distance(left: &str, right: &str, limit: usize) -> usize {
-    if left.len().abs_diff(right.len()) > limit {
-        return limit + 1;
-    }
-    let mut previous: Vec<usize> = (0..=right.len()).collect();
-    for (i, left_char) in left.chars().enumerate() {
-        let mut current = vec![i + 1];
-        let mut row_min = i + 1;
-        for (j, right_char) in right.chars().enumerate() {
-            let insert = current[j] + 1;
-            let delete = previous[j + 1] + 1;
-            let replace = previous[j] + usize::from(left_char != right_char);
-            let value = insert.min(delete).min(replace);
-            current.push(value);
-            row_min = row_min.min(value);
-        }
-        if row_min > limit {
-            return limit + 1;
-        }
-        previous = current;
-    }
-    previous[right.len()]
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
-        all_words, build_preservation_retry_prompt, build_prompt, ensure_basic_formatting,
-        levenshtein_distance, preserves_content, reconcile_candidate, split_cleanup_chunks,
+        all_words, apply_known_recognition_repairs, build_prompt, constrain_formatter_output,
+        ensure_basic_formatting, reconcile_candidate, same_word_sequence, split_cleanup_chunks,
         strip_wrapping_quotes,
     };
 
@@ -595,63 +616,29 @@ mod tests {
     }
 
     #[test]
-    fn content_guard_accepts_punctuation_repairs() {
-        assert!(preserves_content(
+    fn exact_guard_accepts_only_the_same_spoken_words() {
+        assert!(same_word_sequence(
             "okay so we should finish the project tomorrow",
             "Okay, so we should finish the project tomorrow."
         ));
-    }
-
-    #[test]
-    fn content_guard_rejects_removed_protected_words() {
-        assert!(!preserves_content(
+        assert!(!same_word_sequence(
             "well I mean we should finish the project tomorrow",
             "We should finish the project tomorrow."
         ));
-        assert!(!preserves_content(
+        assert!(!same_word_sequence(
             "Once you are done you can click the button.",
             "Once you are done, click the button."
         ));
     }
 
     #[test]
-    fn content_guard_accepts_inferred_layout_without_spoken_markers() {
-        assert!(preserves_content(
-            "How does it work? Listen carefully. Write the text. Click evaluate.",
-            "How does it work?\n\n1. Listen carefully.\n2. Write the text.\n3. Click evaluate."
-        ));
-    }
-
-    #[test]
-    fn content_guard_accepts_small_contextual_recognition_repairs() {
-        assert!(preserves_content(
-            "We instantly check and correct your text allowing you to receive a final blow.",
-            "We instantly check and correct your text, allowing you to receive a final grade."
-        ));
-        assert!(preserves_content(
-            "We have hundreds of dictations for beginners true advanced.",
-            "We have hundreds of dictations for beginners through advanced students."
-        ));
-    }
-
-    #[test]
-    fn prompt_requires_semantic_structure_without_spoken_commands() {
+    fn prompt_limits_qwen_to_conservative_formatting() {
         let prompt = build_prompt("How does it work? Listen. Write. Submit.", "Unknown.");
-        assert!(prompt.contains("should not have to dictate"));
-        assert!(prompt.contains("three or more distinct actions"));
-        assert!(prompt.contains("1. Listen carefully"));
-    }
-
-    #[test]
-    fn retry_prompt_preserves_layout_while_restoring_dropped_words() {
-        let prompt = build_preservation_retry_prompt(
-            "Once you are done you can click evaluate.",
-            "3. Once you are done, click evaluate.",
-            "Unknown.",
-        );
-        assert!(prompt.contains("Keep the draft's punctuation, paragraphs, and Markdown list"));
-        assert!(prompt.contains("you can"));
-        assert!(prompt.contains("3. Once you are done"));
+        assert!(prompt.contains("Copy every word exactly once"));
+        assert!(prompt.contains("Never replace, remove, add, reorder"));
+        assert!(prompt.contains("If uncertain, use prose"));
+        assert!(!prompt.contains("recognition slip"));
+        assert!(!prompt.contains("adaptive writing style"));
     }
 
     #[test]
@@ -665,24 +652,84 @@ mod tests {
             reconciled,
             "Linnell's pictures are a sort of up guards and atom paintings, and Mason's exquisite idols are as national as a jingo poem."
         );
-        assert!(preserves_content(original, &reconciled));
+        assert!(same_word_sequence(original, &reconciled));
     }
 
     #[test]
-    fn reconciliation_preserves_guarded_contextual_repairs() {
+    fn qwen_cannot_make_semantic_repairs_or_rewrites() {
         assert_eq!(
             reconcile_candidate(
                 "we instantly check your text and return a final blow",
                 "We instantly check your text and return a final grade."
             ),
-            "We instantly check your text and return a final grade."
+            "We instantly check your text and return a final blow."
         );
         assert_eq!(
             reconcile_candidate(
                 "we have dictations for beginners true advanced",
                 "We have dictations for beginners through advanced students."
             ),
+            "We have dictations for beginners true advanced."
+        );
+    }
+
+    #[test]
+    fn known_recognition_repairs_are_narrow_and_deterministic() {
+        assert_eq!(
+            apply_known_recognition_repairs(
+                "We instantly correct your dictation and return a final blow."
+            ),
+            "We instantly correct your dictation and return a final grade."
+        );
+        assert_eq!(
+            apply_known_recognition_repairs("We have dictations for beginners true advanced."),
             "We have dictations for beginners through advanced students."
+        );
+        assert_eq!(
+            apply_known_recognition_repairs("The boxer delivered the final blow."),
+            "The boxer delivered the final blow."
+        );
+    }
+
+    #[test]
+    fn ordinary_speech_cannot_be_turned_into_an_ai_style_list() {
+        let source = "it is buggy and qwen does too much and the final words hardly get captured";
+        let candidate =
+            "It is buggy.\n\n1. And Qwen does too much.\n2. And the final words hardly get captured.";
+        assert_eq!(
+            constrain_formatter_output(source, candidate, false),
+            "It is buggy. And Qwen does too much. And the final words hardly get captured."
+        );
+    }
+
+    #[test]
+    fn unmistakable_process_can_still_be_formatted_as_steps() {
+        let source = "how does it work listen to the file then write the text once you are done click evaluate and finally review the grade";
+        let candidate = "How does it work?\n\n1. Listen to the file.\n2. Then write the text.\n3. Once you are done, click evaluate.\n4. And finally review the grade.";
+        assert_eq!(
+            constrain_formatter_output(source, candidate, false),
+            candidate
+        );
+    }
+
+    #[test]
+    fn short_prose_does_not_get_fragmented_into_ai_paragraphs() {
+        let source = "I think this is useful but I do not want every sentence to look dramatic";
+        let candidate =
+            "I think this is useful.\n\nBut I do not want every sentence to look dramatic.";
+        assert_eq!(
+            constrain_formatter_output(source, candidate, false),
+            "I think this is useful. But I do not want every sentence to look dramatic."
+        );
+    }
+
+    #[test]
+    fn formatter_cannot_add_stylized_quotes_and_leaves_decimal_casing_alone() {
+        let source = "he says like a shampooer next man and i waited 1.5 seconds";
+        let candidate = "He says, \"Like a shampooer. Next man.\" And i waited 1.5 seconds.";
+        assert_eq!(
+            constrain_formatter_output(source, candidate, false),
+            "He says, Like a shampooer. Next man. And I waited 1.5 seconds."
         );
     }
 
@@ -734,11 +781,5 @@ mod tests {
             ensure_basic_formatting("const parrot = true", "const parrot = true", true),
             "const parrot = true"
         );
-    }
-
-    #[test]
-    fn bounded_levenshtein_handles_close_and_distant_words() {
-        assert_eq!(levenshtein_distance("project", "projects", 2), 1);
-        assert!(levenshtein_distance("project", "parrot", 2) > 2);
     }
 }

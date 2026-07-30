@@ -1,4 +1,8 @@
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::{
+    sync::{mpsc::Sender, Arc, Mutex},
+    thread,
+    time::{Duration, Instant},
+};
 
 use anyhow::{anyhow, Context, Result};
 use cpal::{
@@ -10,6 +14,13 @@ pub struct Recorder {
     sample_rate: u32,
     frames: Arc<Mutex<Vec<f32>>>,
     stream: Option<Stream>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ReleaseTail {
+    pub waited: Duration,
+    pub appended_seconds: f32,
+    pub ended_on_silence: bool,
 }
 
 impl Recorder {
@@ -131,6 +142,65 @@ impl Recorder {
             .clone();
         Ok(audio)
     }
+
+    /// Keep the microphone open briefly after push-to-talk key-up.
+    ///
+    /// Audio drivers deliver input in buffered callbacks, so stopping on the
+    /// key event can cut the last phoneme even when the user released the key
+    /// after speaking. A minimum cushion catches that buffered audio. If the
+    /// user is still finishing a word, continue until a short quiet boundary,
+    /// with a hard upper bound so ambient noise cannot stall dictation.
+    pub fn wait_for_release_tail(
+        &self,
+        minimum: Duration,
+        silence_window: Duration,
+        maximum: Duration,
+        poll_interval: Duration,
+    ) -> ReleaseTail {
+        let started = Instant::now();
+        let start_frame = self
+            .frames
+            .lock()
+            .expect("audio frames mutex poisoned")
+            .len();
+        let silence_samples =
+            (self.sample_rate as f32 * silence_window.as_secs_f32()).round() as usize;
+        let mut ended_on_silence = false;
+
+        loop {
+            thread::sleep(poll_interval);
+            let elapsed = started.elapsed();
+            if elapsed >= maximum {
+                break;
+            }
+            if elapsed < minimum {
+                continue;
+            }
+
+            let frames = self.frames.lock().expect("audio frames mutex poisoned");
+            let appended = frames.len().saturating_sub(start_frame);
+            if appended < silence_samples {
+                continue;
+            }
+            let recent_start = frames.len().saturating_sub(silence_samples);
+            if !has_voice(&frames[recent_start..]) {
+                ended_on_silence = true;
+                break;
+            }
+        }
+
+        let appended = self
+            .frames
+            .lock()
+            .expect("audio frames mutex poisoned")
+            .len()
+            .saturating_sub(start_frame);
+        ReleaseTail {
+            waited: started.elapsed(),
+            appended_seconds: appended as f32 / self.sample_rate as f32,
+            ended_on_silence,
+        }
+    }
 }
 
 fn push_samples(
@@ -161,10 +231,54 @@ fn to_mono(input: &[f32], channels: usize) -> Vec<f32> {
         return input.to_vec();
     }
 
+    // Microphone arrays and virtual devices sometimes expose an active
+    // channel beside a silent or phase-inverted channel. Averaging them can
+    // make a normal voice extremely quiet or cancel it altogether. Follow the
+    // loudest channel in this callback instead.
+    let mut energy = vec![0.0f64; channels];
+    let mut counts = vec![0usize; channels];
+    for frame in input.chunks(channels) {
+        for (channel, sample) in frame.iter().enumerate() {
+            energy[channel] += f64::from(*sample) * f64::from(*sample);
+            counts[channel] += 1;
+        }
+    }
+    let selected = energy
+        .iter()
+        .zip(counts.iter())
+        .enumerate()
+        .max_by(
+            |(_, (left_energy, left_count)), (_, (right_energy, right_count))| {
+                let left = **left_energy / (**left_count).max(1) as f64;
+                let right = **right_energy / (**right_count).max(1) as f64;
+                left.total_cmp(&right)
+            },
+        )
+        .map(|(channel, _)| channel)
+        .unwrap_or(0);
+
     input
         .chunks(channels)
-        .map(|frame| frame.iter().copied().sum::<f32>() / frame.len() as f32)
+        .filter_map(|frame| frame.get(selected).copied())
         .collect()
+}
+
+fn has_voice(samples: &[f32]) -> bool {
+    let (peak, rms) = signal_metrics(samples);
+    peak >= 0.006 || rms >= 0.002
+}
+
+pub fn signal_metrics(samples: &[f32]) -> (f32, f32) {
+    if samples.is_empty() {
+        return (0.0, 0.0);
+    }
+    let peak = samples
+        .iter()
+        .map(|sample| sample.abs())
+        .fold(0.0, f32::max);
+    let rms =
+        (samples.iter().map(|sample| sample * sample).sum::<f32>() / samples.len() as f32).sqrt();
+    (peak, rms)
 }
 
 fn resample_linear(input: &[f32], input_rate: u32, output_rate: u32) -> Vec<f32> {
@@ -185,4 +299,62 @@ fn resample_linear(input: &[f32], input_rate: u32, output_rate: u32) -> Vec<f32>
     }
 
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{thread, time::Duration};
+
+    use super::{has_voice, to_mono, Recorder};
+
+    #[test]
+    fn stereo_capture_uses_active_channel_instead_of_diluting_it() {
+        let stereo = [0.0, 0.25, 0.0, -0.25, 0.0, 0.5];
+        assert_eq!(to_mono(&stereo, 2), vec![0.25, -0.25, 0.5]);
+    }
+
+    #[test]
+    fn stereo_capture_does_not_cancel_phase_inverted_microphones() {
+        let stereo = [0.2, -0.2, -0.4, 0.4, 0.3, -0.3];
+        let mono = to_mono(&stereo, 2);
+        assert_eq!(
+            mono.iter().map(|sample| sample.abs()).collect::<Vec<_>>(),
+            vec![0.2, 0.4, 0.3]
+        );
+    }
+
+    #[test]
+    fn release_tail_keeps_quiet_voice_but_ignores_room_silence() {
+        assert!(has_voice(&[0.0, 0.006, -0.006, 0.001]));
+        assert!(!has_voice(&[0.0, 0.0008, -0.0008, 0.0004]));
+    }
+
+    #[test]
+    fn release_tail_waits_through_late_voice_until_a_quiet_boundary() {
+        let recorder = Recorder::new(1_000).expect("recorder");
+        let frames = recorder.frames.clone();
+        let producer = thread::spawn(move || {
+            for _ in 0..8 {
+                thread::sleep(Duration::from_millis(5));
+                frames.lock().expect("frames").extend_from_slice(&[0.01; 5]);
+            }
+            for _ in 0..8 {
+                thread::sleep(Duration::from_millis(5));
+                frames.lock().expect("frames").extend_from_slice(&[0.0; 5]);
+            }
+        });
+
+        let tail = recorder.wait_for_release_tail(
+            Duration::from_millis(15),
+            Duration::from_millis(15),
+            Duration::from_millis(150),
+            Duration::from_millis(5),
+        );
+        producer.join().expect("producer");
+
+        assert!(tail.ended_on_silence);
+        assert!(tail.waited >= Duration::from_millis(40));
+        assert!(tail.waited < Duration::from_millis(150));
+        assert!(tail.appended_seconds >= 0.05);
+    }
 }

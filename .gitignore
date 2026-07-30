@@ -34,3 +34,4 @@ benchmarks/sleep_ready_smoke/
 benchmarks/sleep_ready_smoke2/
 benchmarks/suite_smoke/
 benchmarks/suite_smoke_all/
+benchmarks/cleanup_conservative_qwen*/

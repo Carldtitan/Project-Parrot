@@ -1,6 +1,9 @@
 target/
 build/
 dist/
+release/
+.build/
+node_modules/
 *.spec
 models/
 vendor/

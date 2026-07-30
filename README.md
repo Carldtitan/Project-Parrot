@@ -1,120 +1,118 @@
-# Project Parrot
+# Parrot
 
-Local Wispr Flow-style dictation MVP for Windows.
+Private, local-first voice typing for Windows.
 
-## Current MVP
+[**Download the latest Parrot.exe**](https://github.com/Carldtitan/Project-Parrot/releases/download/latest/Parrot.exe)
+
+Hold `Ctrl+Space`, speak naturally, and release `Space`. Parrot shows the
+transcript while you talk, finishes the full utterance locally, and pastes it
+into the app you were using.
+
+![Parrot transcribing locally](docs/parrot-ui.png)
+
+## Why I built it
+
+Parrot explores whether fast, polished dictation can work without sending a
+microphone stream to a cloud transcription service. It combines a native Rust
+input and audio engine, a kept-alive local speech worker, and a small Electron
+desktop shell.
+
+The product work includes:
+
+- rolling live transcription that preserves earlier words during long speech;
+- full-utterance recognition before the final paste;
+- global push-to-talk and clipboard-safe insertion;
+- a non-focus-stealing overlay and persistent Windows tray process;
+- an optional local formatter with a guarded raw-transcript fallback;
+- benchmark-driven model selection; and
+- a reproducible Windows installer and continuously updated GitHub release.
+
+## Try it
+
+Requirements: 64-bit Windows 10 or 11. A GPU is not required.
+
+1. Download and run
+   [Parrot.exe](https://github.com/Carldtitan/Project-Parrot/releases/download/latest/Parrot.exe).
+2. Let Parrot download its local speech model on the first launch.
+3. Focus a text field in any app.
+4. Hold `Ctrl+Space`, speak, and release `Space`.
+
+Parrot keeps running in the notification area when its window is closed.
+Clicking the tray icon opens it again.
+
+The installer is not code-signed yet, so Windows may show an **Unknown
+publisher** warning. A SHA-256 checksum is attached to every release. Ollama
+and Qwen are optional: transcription works without them.
+
+## How it works
 
 ```text
-Ctrl+Space push-to-talk
--> Rust global hotkey + microphone capture
--> kept-alive local STT worker
--> faster-whisper small.en CPU by default
--> Parakeet ONNX optional CPU mode
--> strict local Qwen2.5 3B Instruct formatter through Ollama
--> clipboard paste into the focused app
+Ctrl+Space + microphone
+           |
+           v
+Rust hotkey/audio engine -----> live audio chunks
+           |                          |
+           |                          v
+           |                  Parakeet ONNX worker
+           |                          |
+           |                 stable live transcript
+           |                          |
+           +---- full utterance ------+
+                           |
+                  optional local Qwen
+                           |
+                    guarded final text
+                           |
+                     paste into app
 ```
 
-No cloud transcription. No TTS. No voice chat model. No GPU requirement.
+All speech recognition runs on the machine. The default engine is NVIDIA
+Parakeet TDT 0.6B v3 through ONNX Runtime, with faster-whisper `small.en` as a
+fallback. The optional formatter uses Qwen2.5 3B through a local Ollama server.
 
-## Runtime Roles
+In the repository's CPU benchmark suite, Parakeet ran at approximately
+`0.09–0.11` real-time factor across Common Voice, LibriSpeech Other, and
+Earnings22. Results are hardware- and dataset-dependent; the raw reports are in
+[`benchmarks/suite_100`](benchmarks/suite_100).
 
-- Rust: desktop shell, hotkey, audio capture, worker lifecycle, paste.
-- faster-whisper `small.en`: default local speech-to-text through CTranslate2 CPU.
-- Parakeet ONNX: fallback local speech-to-text through ONNX Runtime CPU.
-- Qwen2.5 3B Instruct via Ollama: strict final text formatter only.
+## Develop
 
-## Streaming Behavior
-
-Project Parrot keeps the selected STT model loaded at startup. The worker streams
-microphone audio into a rolling live preview while recording, then runs a final
-full-utterance pass on release.
-
-```text
-while speaking: rolling live preview over recent audio
-on release: final full-utterance STT pass with audio cleanup
-after final: strict Qwen formatting and paste
-```
-
-The final paste uses the full utterance, not the unstable live preview.
-
-## Setup
-
-Run the Windows setup:
+You need Rust stable with the MSVC toolchain, Node.js, npm, and Python 3.12+.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1
+npm install
+npm start
 ```
 
-This creates `.venv`, installs app runtime packages, downloads/checks Parakeet
-ONNX and faster-whisper `small.en`, and runs smoke tests.
-
-Build the Rust app:
+To inspect only the interface without loading a speech model:
 
 ```powershell
-cargo build --release
+npm run start:ui
 ```
 
-Run default mode:
+Run the verification suite:
 
 ```powershell
-.\target\release\project-parrot.exe
+cargo fmt --all -- --check
+cargo test --locked
+npm test
+python -m unittest scripts.test_stt_worker
+python -m compileall -q parrot scripts
 ```
 
-Run other modes:
+## Package and release
 
-```powershell
-.\target\release\project-parrot.exe --stt parakeet
-```
-
-Useful options:
-
-```powershell
-.\target\release\project-parrot.exe --update-interval 0.7 --live-window-seconds 8
-.\target\release\project-parrot.exe --stt-threads 6
-.\target\release\project-parrot.exe --ollama-model qwen2.5:3b-instruct
-.\target\release\project-parrot.exe --ollama-keep-alive -1m
-```
-
-By default, Qwen is kept loaded in Ollama after warmup. The Rust app defaults
-to the instruct-only `qwen2.5:3b-instruct` model. The merged cleanup benchmark
-under `benchmarks/cleanup_qwen25_instruct` records the local Qwen2.5 instruct
-comparison that motivated moving off the old 1.5B formatter.
-
-## Packaging
-
-Fast Windows packaging path:
+Build the installer locally:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\package_windows.ps1
 ```
 
-This writes:
+GitHub Actions repeats the verification and packaging process after every
+successful update to `main`. It publishes the installer as `Parrot.exe` on the
+rolling `latest` release, so the download URL at the top of this page never
+changes. A failed build cannot replace the last working release.
 
-```text
-dist\ProjectParrot
-```
-
-The package includes the Rust executable, scripts, app requirements, and
-optional PyInstaller-built STT worker folder. A new machine still needs model
-download through `scripts\setup_models.py` unless you distribute the Hugging
-Face cache separately.
-
-## Formatter Behavior
-
-The local Qwen formatter is intentionally strict:
-
-- Preserves words, order, clauses, and names.
-- Fixes capitalization, punctuation, and spacing.
-- Adapts to the writing mood already present in the transcript.
-- Does not summarize, rewrite, answer, or add new meaning.
-- Falls back to raw STT if the formatted text drifts too far.
-
-## Usage
-
-1. Click into any text box.
-2. Hold `Ctrl+Space`.
-3. Speak.
-4. Release `Space`.
-5. The formatted text is pasted at the cursor.
-
-Quit with `Ctrl+Alt+Q`, or press `Ctrl+C` in the terminal.
+See [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md) for the packaged layout and
+clean-machine release checklist.

@@ -50,6 +50,8 @@ enum WorkerMessage {
     Final {
         text: String,
         latency_ms: Option<u32>,
+        audio_seconds: Option<f32>,
+        chunk_count: Option<u32>,
         #[serde(default)]
         used_live_fallback: bool,
         #[serde(default)]
@@ -154,6 +156,8 @@ impl SttWorker {
                     Ok(WorkerMessage::Final {
                         text,
                         latency_ms,
+                        audio_seconds,
+                        chunk_count,
                         used_live_fallback,
                         used_live_tail,
                     }) => {
@@ -165,6 +169,13 @@ impl SttWorker {
                         }
                         if used_live_tail {
                             log("Restored a trailing phrase from the recognized live transcript.");
+                        }
+                        if let (Some(audio_seconds), Some(chunk_count)) =
+                            (audio_seconds, chunk_count)
+                        {
+                            log(&format!(
+                                "Final STT covered {audio_seconds:.1}s in {chunk_count} segment(s)."
+                            ));
                         }
                         let _ = tx.send(WorkerEvent::Final(text));
                     }
@@ -224,8 +235,10 @@ impl SttWorker {
             "sample_rate": self.sample_rate,
             "samples": STANDARD.encode(bytes),
         }))?;
+        let audio_seconds = samples.len() as f32 / self.sample_rate as f32;
+        let timeout = Duration::from_secs_f32((30.0 + audio_seconds * 0.4).clamp(60.0, 600.0));
         loop {
-            match self.events.recv_timeout(Duration::from_secs(60)) {
+            match self.events.recv_timeout(timeout) {
                 Ok(WorkerEvent::Final(text)) => return Ok(text),
                 Ok(WorkerEvent::Error(message)) => bail!("STT worker error: {message}"),
                 Ok(_) => {}

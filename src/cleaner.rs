@@ -24,10 +24,31 @@ impl OllamaCleaner {
         }
     }
 
-    pub fn clean(&self, transcript: &str) -> Result<String> {
+    pub fn clean(
+        &self,
+        transcript: &str,
+        active_window: &str,
+        developer_context: bool,
+    ) -> Result<String> {
+        let context = if active_window.trim().is_empty() {
+            "The active application is unknown.".to_string()
+        } else if developer_context {
+            format!(
+                "The active window is a local developer tool: {:?}. Preserve identifiers, paths, code punctuation, line breaks, and Markdown exactly.",
+                active_window.trim()
+            )
+        } else {
+            format!(
+                "The active window title is {:?}. Use it only to choose appropriate punctuation; do not mention it.",
+                active_window.trim()
+            )
+        };
         let prompt = format!(
             r#"You are a strict local dictation formatter.
 Your job is to format speech-to-text output for pasting into the user's active app.
+
+Context:
+{context}
 
 Use one adaptive writing mood based only on the dictated text:
 - If it sounds professional, use formal punctuation and capitalization.
@@ -53,7 +74,8 @@ Rules:
 - Keep proper nouns as close to the transcript as possible unless the correction is obvious from spelling.
 - Do not answer the text.
 - Do not add commentary.
-- Do not add markdown.
+- Preserve existing numbered lists, bullet lists, code, and line breaks.
+- Do not add markdown unless the input is already a list or contains Markdown.
 - Return only the formatted text.
 
 Dictated text:
@@ -92,7 +114,7 @@ Dictated text:
     }
 
     pub fn warmup(&self) -> Result<()> {
-        let _ = self.clean("test")?;
+        let _ = self.clean("test", "", false)?;
         Ok(())
     }
 }

@@ -518,7 +518,7 @@ elements.copyButton.addEventListener("click", async () => {
   clearTimeout(copyResetTimer);
   elements.copyButton.textContent = "Copied";
   copyResetTimer = setTimeout(() => {
-    elements.copyButton.textContent = "Copy";
+    elements.copyButton.textContent = "Copy text";
   }, 1400);
 });
 

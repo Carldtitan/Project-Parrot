@@ -258,7 +258,10 @@ fn start_recording(
     hands_free: bool,
 ) -> Result<Instant> {
     stt.begin_utterance()?;
-    let (audio_tx, audio_rx) = mpsc::sync_channel::<Vec<f32>>(2);
+    // Audio capture must never be lossy just because live recognition is
+    // temporarily slower than the microphone. The previous two-item bounded
+    // queue intentionally discarded chunks under load.
+    let (audio_tx, audio_rx) = mpsc::channel::<Vec<f32>>();
     let sink = stt.audio_sink();
     let live_send_interval = Duration::from_secs_f32(config.update_interval.max(0.25));
     *audio_forwarder = Some(thread::spawn(move || {

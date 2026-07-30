@@ -14,6 +14,9 @@ import numpy as np
 PARAKEET_MODEL_ID = "nemo-parakeet-tdt-0.6b-v3"
 WHISPER_FALLBACK_MODEL_ID = "small.en"
 FINAL_TRAILING_PADDING_SECONDS = 0.35
+FINAL_CHUNK_SECONDS = 18.0
+FINAL_CHUNK_OVERLAP_SECONDS = 1.5
+FINAL_SPLIT_SEARCH_SECONDS = 2.0
 
 
 def emit(payload):
@@ -165,6 +168,68 @@ def transcribe(engine, model, audio, sample_rate):
     if engine == "small-en":
         return transcribe_faster_whisper(model, audio, sample_rate)
     raise ValueError(f"unknown engine: {engine}")
+
+
+def split_final_audio(
+    audio,
+    sample_rate,
+    chunk_seconds=FINAL_CHUNK_SECONDS,
+    overlap_seconds=FINAL_CHUNK_OVERLAP_SECONDS,
+):
+    """Split long speech near quiet boundaries while retaining overlap."""
+    audio = np.asarray(audio, dtype=np.float32)
+    max_samples = max(1, int(sample_rate * chunk_seconds))
+    if audio.size <= max_samples:
+        return [audio]
+
+    overlap_samples = max(0, int(sample_rate * overlap_seconds))
+    search_samples = max(1, int(sample_rate * FINAL_SPLIT_SEARCH_SECONDS))
+    minimum_samples = max(1, int(sample_rate * 8.0))
+    frame = max(1, int(sample_rate * 0.03))
+    hop = max(1, int(sample_rate * 0.01))
+    chunks = []
+    start = 0
+
+    while audio.size - start > max_samples:
+        target = start + max_samples
+        search_start = max(start + minimum_samples, target - search_samples)
+        search_end = min(audio.size - frame, target + search_samples)
+        split = target
+        best_rms = float("inf")
+        for candidate in range(search_start, search_end + 1, hop):
+            window = audio[candidate : candidate + frame]
+            rms = float(np.sqrt(np.mean(window * window)))
+            if rms < best_rms:
+                best_rms = rms
+                split = candidate + frame // 2
+
+        split = max(start + minimum_samples, min(split, audio.size))
+        chunks.append(audio[start:split])
+        next_start = max(start + 1, split - overlap_samples)
+        if next_start <= start:
+            next_start = split
+        start = next_start
+
+    if start < audio.size:
+        chunks.append(audio[start:])
+    return chunks
+
+
+def transcribe_final(engine, model, audio, sample_rate):
+    chunks = split_final_audio(audio, sample_rate)
+    merged = ""
+    segment_padding = np.zeros(
+        int(sample_rate * FINAL_TRAILING_PADDING_SECONDS),
+        dtype=np.float32,
+    )
+    for index, chunk in enumerate(chunks):
+        prepared = normalize_audio(chunk)
+        if index < len(chunks) - 1 and not is_probably_silence(prepared):
+            prepared = np.concatenate((prepared, segment_padding))
+        segment = transcribe(engine, model, prepared, sample_rate)
+        if segment:
+            merged = merge_rolling_transcript(merged, segment)
+    return merged.strip(), len(chunks)
 
 
 def live_window(buffer, sample_rate, max_seconds):
@@ -371,7 +436,12 @@ def main():
                         audio = np.asarray(buffer, dtype=np.float32)
                     audio = prepare_final_audio(audio, sample_rate)
                     final_started = time.perf_counter()
-                    text = transcribe(args.engine, model, audio, sample_rate)
+                    text, chunk_count = transcribe_final(
+                        args.engine,
+                        model,
+                        audio,
+                        sample_rate,
+                    )
                     latency_ms = int((time.perf_counter() - final_started) * 1000)
                     used_live_fallback = not text and bool(last_live_text)
                     used_live_tail = False
@@ -386,6 +456,8 @@ def main():
                             "type": "final",
                             "text": text,
                             "latency_ms": latency_ms,
+                            "audio_seconds": round(len(audio) / sample_rate, 3),
+                            "chunk_count": chunk_count,
                             "used_live_fallback": used_live_fallback,
                             "used_live_tail": used_live_tail,
                         }

@@ -7,6 +7,7 @@ from scripts.stt_worker import (
     merge_rolling_transcript,
     prepare_final_audio,
     recover_live_tail,
+    split_final_audio,
 )
 
 
@@ -62,6 +63,37 @@ class MergeRollingTranscriptTests(unittest.TestCase):
         )
 
         self.assertEqual(merged, "this is already visible")
+
+
+class SplitFinalAudioTests(unittest.TestCase):
+    def test_long_audio_is_fully_covered_by_overlapping_chunks(self):
+        sample_rate = 100
+        audio = np.arange(sample_rate * 61, dtype=np.float32)
+
+        chunks = split_final_audio(
+            audio,
+            sample_rate,
+            chunk_seconds=18.0,
+            overlap_seconds=1.5,
+        )
+
+        self.assertGreaterEqual(len(chunks), 4)
+        self.assertLessEqual(max(len(chunk) for chunk in chunks), sample_rate * 20)
+        self.assertTrue(np.array_equal(chunks[0][:10], audio[:10]))
+        self.assertTrue(np.array_equal(chunks[-1][-10:], audio[-10:]))
+        for previous, current in zip(chunks, chunks[1:]):
+            self.assertGreater(
+                len(np.intersect1d(previous[-200:], current[:200])),
+                0,
+            )
+
+    def test_short_audio_stays_in_one_chunk(self):
+        audio = np.ones(16_000 * 5, dtype=np.float32)
+
+        chunks = split_final_audio(audio, 16_000)
+
+        self.assertEqual(len(chunks), 1)
+        self.assertTrue(np.array_equal(chunks[0], audio))
 
 
 class RecoverLiveTailTests(unittest.TestCase):

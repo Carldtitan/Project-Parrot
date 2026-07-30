@@ -56,19 +56,21 @@ large and have their own upstream licenses and cache lifecycle.
 4. Run `npm run test:e2e`.
 5. Run `npm run verify:live-stt`.
 6. Run `npm run verify:long-stt` when the Parakeet model is available.
-7. Run `python -m unittest scripts.test_stt_worker`.
-8. Run `scripts\package_windows.ps1`.
-9. Install the generated NSIS package on a clean Windows user account.
-10. Confirm the app starts in the tray and the settings window can be closed.
-11. Test push-to-talk, hands-free, cancel, and paste-previous in Notepad.
-12. Dictate continuously for at least one minute and compare the final text
+7. Run `npm run verify:extended-stt` to exercise minute-scale segmentation.
+8. Run
+   `python -m unittest scripts.test_stt_worker scripts.test_cleanup_pipeline`.
+9. Run `scripts\package_windows.ps1`.
+10. Install the generated NSIS package on a clean Windows user account.
+11. Confirm the app starts in the tray and the settings window can be closed.
+12. Test push-to-talk, hands-free, cancel, and paste-previous in Notepad.
+13. Dictate continuously for at least one minute and compare the final text
     with the live preview; neither may omit a section.
-13. Dictate a three-step procedure without saying numbers; confirm Qwen returns
+14. Dictate a three-step procedure without saying numbers; confirm Qwen returns
     a numbered list in a multiline editor.
-14. End a sentence immediately before releasing push-to-talk; confirm the final
+15. End a sentence immediately before releasing push-to-talk; confirm the final
     words survive the full recognition pass.
-15. Add a dictionary entry and snippet, then confirm both affect a dictation.
-16. Confirm history and usage totals persist after restarting the app.
-17. Optionally pull Qwen using **Install formatter** under Advanced settings.
-18. Confirm **Quit Project Parrot** removes both the Rust and STT worker
-   processes.
+16. Add a dictionary entry and snippet, then confirm both affect a dictation.
+17. Confirm history and usage totals persist after restarting the app.
+18. Optionally pull Qwen using **Install formatter** under Advanced settings.
+19. Confirm **Quit Project Parrot** removes both the Rust and STT worker
+    processes.

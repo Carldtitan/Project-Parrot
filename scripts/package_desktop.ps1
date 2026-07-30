@@ -36,16 +36,20 @@ function New-ParrotIcon {
     $Bitmap = [Drawing.Bitmap]::new(256, 256)
     $Graphics = [Drawing.Graphics]::FromImage($Bitmap)
     $Graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $Graphics.Clear([Drawing.Color]::FromArgb(23, 24, 26))
+    $Graphics.Clear([Drawing.Color]::FromArgb(28, 23, 33))
 
+    $FontCollection = [Drawing.Text.PrivateFontCollection]::new()
+    $FontCollection.AddFontFile(
+        (Join-Path $Root "desktop\assets\fonts\SchibstedGrotesk-Variable.ttf")
+    )
     $Font = [Drawing.Font]::new(
-        "Segoe UI",
+        $FontCollection.Families[0],
         138,
         [Drawing.FontStyle]::Bold,
         [Drawing.GraphicsUnit]::Pixel
     )
-    $TextBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(246, 240, 223))
-    $AccentBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(239, 157, 82))
+    $TextBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(251, 249, 252))
+    $AccentBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(217, 255, 87))
     $Format = [Drawing.StringFormat]::new()
     $Format.Alignment = [Drawing.StringAlignment]::Center
     $Format.LineAlignment = [Drawing.StringAlignment]::Center
@@ -57,13 +61,22 @@ function New-ParrotIcon {
         [Drawing.RectangleF]::new(0, -5, 256, 256),
         $Format
     )
-    $Graphics.FillEllipse($AccentBrush, 190, 20, 42, 42)
+    $Graphics.FillPolygon(
+        $AccentBrush,
+        [Drawing.Point[]]@(
+            [Drawing.Point]::new(210, 20),
+            [Drawing.Point]::new(238, 48),
+            [Drawing.Point]::new(210, 76),
+            [Drawing.Point]::new(182, 48)
+        )
+    )
     $Bitmap.Save($Path, [Drawing.Imaging.ImageFormat]::Png)
 
     $Format.Dispose()
     $AccentBrush.Dispose()
     $TextBrush.Dispose()
     $Font.Dispose()
+    $FontCollection.Dispose()
     $Graphics.Dispose()
     $Bitmap.Dispose()
 }

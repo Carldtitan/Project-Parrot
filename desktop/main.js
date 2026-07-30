@@ -137,9 +137,9 @@ function applyLoginSetting() {
 function createTrayIcon() {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <rect width="32" height="32" rx="8" fill="#15181d"/>
-      <path d="M9 8.5h8.6c4.3 0 6.9 2.2 6.9 5.9 0 3.9-2.8 6.2-7.2 6.2h-3.1v4.9H9v-17Zm5.2 4.1v4.1h2.7c1.6 0 2.5-.7 2.5-2.1 0-1.3-.9-2-2.5-2h-2.7Z" fill="#f7f8fb"/>
-      <path d="M23.5 5.5 27 9l-3.5 3.5L20 9l3.5-3.5Z" fill="#5b6cff"/>
+      <rect width="32" height="32" rx="8" fill="#1c1721"/>
+      <path d="M9 8.5h8.6c4.3 0 6.9 2.2 6.9 5.9 0 3.9-2.8 6.2-7.2 6.2h-3.1v4.9H9v-17Zm5.2 4.1v4.1h2.7c1.6 0 2.5-.7 2.5-2.1 0-1.3-.9-2-2.5-2h-2.7Z" fill="#fbf9fc"/>
+      <path d="M23.5 5.5 27 9l-3.5 3.5L20 9l3.5-3.5Z" fill="#d9ff57"/>
     </svg>`;
   const image = nativeImage.createFromDataURL(
     `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`,
@@ -149,19 +149,19 @@ function createTrayIcon() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 960,
-    height: 720,
+    width: 1080,
+    height: 760,
     minWidth: 760,
     minHeight: 600,
     show: false,
-    backgroundColor: "#f6f7f9",
+    backgroundColor: "#f3f0f5",
     autoHideMenuBar: true,
     title: "Parrot",
     titleBarStyle: "hidden",
     titleBarOverlay: {
-      color: "#f6f7f9",
-      symbolColor: "#20242a",
-      height: 44,
+      color: "#f3f0f5",
+      symbolColor: "#29232d",
+      height: 48,
     },
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),

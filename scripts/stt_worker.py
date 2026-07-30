@@ -272,6 +272,14 @@ def normalized_token(token):
     return re.sub(r"[^\w']+", "", token.casefold())
 
 
+def equivalent_token(left, right):
+    if left == right:
+        return True
+    if min(len(left), len(right)) < 4:
+        return False
+    return SequenceMatcher(None, left, right, autojunk=False).ratio() >= 0.78
+
+
 def merge_rolling_transcript(previous, current):
     """Join overlapping rolling-window transcripts without losing old words."""
     previous = str(previous or "").strip()
@@ -294,6 +302,20 @@ def merge_rolling_transcript(previous, current):
         if previous_keys[-overlap:] == current_keys[:overlap]:
             return " ".join(previous_words[:-overlap] + current_words)
 
+    # The recognizer often revises one proper name at the moving boundary
+    # ("Quilton" -> "Quilter", "Mr." -> "Mister"). Treat a mostly equivalent
+    # suffix/prefix as overlap instead of duplicating the whole window.
+    for overlap in range(max_overlap, 1, -1):
+        equivalent = sum(
+            equivalent_token(left, right)
+            for left, right in zip(
+                previous_keys[-overlap:],
+                current_keys[:overlap],
+            )
+        )
+        if equivalent / overlap >= 0.80:
+            return " ".join(previous_words[:-overlap] + current_words)
+
     # Recognition can revise one or two words between passes. Anchor on the
     # strongest shared phrase near the moving boundary and replace that tail
     # with the newer hypothesis.
@@ -308,7 +330,7 @@ def merge_rolling_transcript(previous, current):
         block
         for block in matcher.get_matching_blocks()
         if block.size >= 2
-        and block.b <= max(3, len(current_keys) // 3)
+        and block.b <= max(3, len(current_keys) // 2)
     ]
     if candidates:
         anchor = max(candidates, key=lambda block: (block.size, -block.b))
@@ -318,10 +340,17 @@ def merge_rolling_transcript(previous, current):
         )
 
     # A one-word boundary is still useful for short phrases.
-    if previous_keys[-1] == current_keys[0]:
+    if equivalent_token(previous_keys[-1], current_keys[0]):
         return " ".join(previous_words[:-1] + current_words)
 
-    return f"{previous} {current}".strip()
+    # Consecutive rolling windows overlap by almost their entire duration. If
+    # no reliable anchor survives a recognition revision, appending both
+    # hypotheses creates obvious duplicate paragraphs. Replace a tiny startup
+    # hypothesis with the fuller window; otherwise hold the stable transcript
+    # and wait for the next update to provide a usable anchor.
+    if len(previous_words) <= 6 and len(current_words) > len(previous_words):
+        return current
+    return previous
 
 
 def merge_final_segments(previous, current):
@@ -353,13 +382,6 @@ def merge_final_segments(previous, current):
     previous_tail = previous_keys[previous_tail_start:]
     current_head = current_keys[:current_head_end]
 
-    def equivalent(left, right):
-        if left == right:
-            return True
-        if min(len(left), len(right)) < 4:
-            return False
-        return SequenceMatcher(None, left, right, autojunk=False).ratio() >= 0.78
-
     anchors = []
     for previous_index in range(len(previous_tail)):
         for current_index in range(min(9, len(current_head))):
@@ -367,7 +389,7 @@ def merge_final_segments(previous, current):
             while (
                 previous_index + length < len(previous_tail)
                 and current_index + length < len(current_head)
-                and equivalent(
+                and equivalent_token(
                     previous_tail[previous_index + length],
                     current_head[current_index + length],
                 )

@@ -68,6 +68,35 @@ class MergeRollingTranscriptTests(unittest.TestCase):
 
         self.assertEqual(merged, "this is already visible")
 
+    def test_replaces_a_tiny_startup_hypothesis_after_name_revision(self):
+        merged = merge_rolling_transcript(
+            "mister Quilton's",
+            "mister Quilter is the apostle of the middle classes",
+        )
+
+        self.assertEqual(
+            merged,
+            "mister Quilter is the apostle of the middle classes",
+        )
+
+    def test_does_not_append_an_unanchored_overlapping_window_twice(self):
+        previous = (
+            "Mister Carker used to flash his teeth and Mister John Collier "
+            "gives his sitter a cheerful slap"
+        )
+        current = (
+            "And Mr John Collier gives his sitter a cheerful slap on the back "
+            "before he says next man"
+        )
+
+        merged = merge_rolling_transcript(previous, current)
+
+        self.assertEqual(
+            merged,
+            "Mister Carker used to flash his teeth And Mr John Collier "
+            "gives his sitter a cheerful slap on the back before he says next man",
+        )
+
 
 class SplitFinalAudioTests(unittest.TestCase):
     def test_ordinary_long_dictation_uses_one_context_preserving_pass(self):

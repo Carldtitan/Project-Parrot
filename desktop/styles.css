@@ -105,31 +105,30 @@ button:disabled {
 
 .brand-lockup {
   display: flex;
-  height: 42px;
+  height: 46px;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding: 0 8px;
-  font-size: 17px;
-  font-weight: 760;
-  letter-spacing: -0.035em;
+  font-size: 18px;
+  font-weight: 740;
+  letter-spacing: -0.025em;
 }
 
 .brand-symbol {
-  width: 29px;
-  height: 29px;
+  display: grid;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f1f6e8;
 }
 
-.brand-symbol rect {
-  fill: var(--sidebar-active);
-}
-
-.brand-symbol path {
-  fill: var(--sidebar);
-}
-
-.brand-symbol .brand-accent {
-  fill: var(--accent);
+.brand-symbol img {
+  width: 28px;
+  height: 28px;
+  transform: translateY(1px);
 }
 
 .primary-nav {

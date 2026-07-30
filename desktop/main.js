@@ -135,14 +135,8 @@ function applyLoginSetting() {
 }
 
 function createTrayIcon() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <rect width="32" height="32" rx="8" fill="#1c1721"/>
-      <path d="M9 8.5h8.6c4.3 0 6.9 2.2 6.9 5.9 0 3.9-2.8 6.2-7.2 6.2h-3.1v4.9H9v-17Zm5.2 4.1v4.1h2.7c1.6 0 2.5-.7 2.5-2.1 0-1.3-.9-2-2.5-2h-2.7Z" fill="#fbf9fc"/>
-      <path d="M23.5 5.5 27 9l-3.5 3.5L20 9l3.5-3.5Z" fill="#d9ff57"/>
-    </svg>`;
-  const image = nativeImage.createFromDataURL(
-    `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`,
+  const image = nativeImage.createFromPath(
+    path.join(__dirname, "assets", "brand", "parrot-app-icon.png"),
   );
   return image.resize({ width: 16, height: 16 });
 }

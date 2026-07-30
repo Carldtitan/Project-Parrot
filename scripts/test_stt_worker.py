@@ -126,6 +126,17 @@ class SplitFinalAudioTests(unittest.TestCase):
         self.assertEqual(len(chunks), 1)
         self.assertTrue(np.array_equal(chunks[0], audio))
 
+    def test_extended_audio_uses_long_context_chunks(self):
+        sample_rate = 100
+        audio = np.arange(sample_rate * 190, dtype=np.float32)
+
+        chunks = split_final_audio(audio, sample_rate)
+
+        self.assertEqual(len(chunks), 4)
+        self.assertLessEqual(max(len(chunk) for chunk in chunks), sample_rate * 65)
+        self.assertTrue(np.array_equal(chunks[0][:10], audio[:10]))
+        self.assertTrue(np.array_equal(chunks[-1][-10:], audio[-10:]))
+
     def test_final_audio_preserves_soft_edges(self):
         sample_rate = 16_000
         quiet_edge = np.full(sample_rate, 0.005, dtype=np.float32)

@@ -529,79 +529,6 @@ fn ensure_basic_formatting(text: &str, source: &str, developer_context: bool) ->
     formatted
 }
 
-fn restore_dropped_protected_phrases(original: &str, candidate: &str) -> String {
-    let original_words = word_spans(original);
-    let candidate_words = word_spans(candidate);
-    if original_words.is_empty() || candidate_words.is_empty() {
-        return candidate.to_string();
-    }
-
-    let mut original_index = 0;
-    let mut candidate_index = 0;
-    let mut insertions: Vec<(usize, String)> = Vec::new();
-    const LOOKAHEAD: usize = 8;
-
-    while original_index < original_words.len() && candidate_index < candidate_words.len() {
-        if original_words[original_index].normalized == candidate_words[candidate_index].normalized
-        {
-            original_index += 1;
-            candidate_index += 1;
-            continue;
-        }
-
-        let original_match = original_words
-            .iter()
-            .enumerate()
-            .skip(original_index + 1)
-            .take(LOOKAHEAD)
-            .find(|(_, word)| word.normalized == candidate_words[candidate_index].normalized)
-            .map(|(index, _)| index);
-        if let Some(match_index) = original_match {
-            let omitted = &original_words[original_index..match_index];
-            if !omitted.is_empty()
-                && omitted
-                    .iter()
-                    .all(|word| PROTECTED_WORDS.contains(&word.normalized.as_str()))
-            {
-                insertions.push((
-                    candidate_words[candidate_index].start,
-                    format!(
-                        "{} ",
-                        omitted
-                            .iter()
-                            .map(|word| word.surface.as_str())
-                            .collect::<Vec<_>>()
-                            .join(" ")
-                    ),
-                ));
-                original_index = match_index;
-                continue;
-            }
-        }
-
-        let candidate_match = candidate_words
-            .iter()
-            .enumerate()
-            .skip(candidate_index + 1)
-            .take(LOOKAHEAD)
-            .find(|(_, word)| word.normalized == original_words[original_index].normalized)
-            .map(|(index, _)| index);
-        if let Some(match_index) = candidate_match {
-            candidate_index = match_index;
-            continue;
-        }
-
-        original_index += 1;
-        candidate_index += 1;
-    }
-
-    let mut restored = candidate.to_string();
-    for (position, phrase) in insertions.into_iter().rev() {
-        restored.insert_str(position, &phrase);
-    }
-    restored
-}
-
 fn important_words(text: &str) -> Vec<String> {
     let stopwords = [
         "about", "after", "again", "also", "and", "are", "because", "but", "can", "for", "from",
@@ -656,8 +583,8 @@ fn levenshtein_distance(left: &str, right: &str, limit: usize) -> usize {
 mod tests {
     use super::{
         all_words, build_preservation_retry_prompt, build_prompt, ensure_basic_formatting,
-        levenshtein_distance, preserves_content, reconcile_candidate,
-        restore_dropped_protected_phrases, split_cleanup_chunks, strip_wrapping_quotes,
+        levenshtein_distance, preserves_content, reconcile_candidate, split_cleanup_chunks,
+        strip_wrapping_quotes,
     };
 
     #[test]
@@ -713,28 +640,6 @@ mod tests {
         assert!(prompt.contains("should not have to dictate"));
         assert!(prompt.contains("three or more distinct actions"));
         assert!(prompt.contains("1. Listen carefully"));
-    }
-
-    #[test]
-    fn restores_only_dropped_protected_phrases_inside_formatted_text() {
-        assert_eq!(
-            restore_dropped_protected_phrases(
-                "Once you are done you can click the button.",
-                "3. Once you are done, click the button."
-            ),
-            "3. Once you are done, you can click the button."
-        );
-        assert_eq!(
-            restore_dropped_protected_phrases(
-                "Okay so I think we should ship.",
-                "Okay, so we should ship."
-            ),
-            "Okay, so I think we should ship."
-        );
-        assert_eq!(
-            restore_dropped_protected_phrases("Receive a final blow.", "Receive a final grade."),
-            "Receive a final grade."
-        );
     }
 
     #[test]

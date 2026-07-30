@@ -1,6 +1,8 @@
 import argparse
 import base64
+from difflib import SequenceMatcher
 import json
+import re
 import struct
 import sys
 import time
@@ -108,7 +110,18 @@ def trim_silence(audio, sample_rate):
 
 
 def prepare_final_audio(audio, sample_rate):
-    return normalize_audio(trim_silence(audio, sample_rate))
+    source = np.asarray(audio, dtype=np.float32)
+    trimmed = trim_silence(source, sample_rate)
+
+    # Some laptop microphones produce speech below the conservative trimming
+    # threshold even though the recognizer can transcribe the untrimmed signal.
+    # Never discard an otherwise useful utterance solely because trimming found
+    # too little voiced audio.
+    minimum_useful_samples = int(sample_rate * 0.25)
+    if source.size >= minimum_useful_samples and trimmed.size < minimum_useful_samples:
+        trimmed = source
+
+    return normalize_audio(trimmed)
 
 
 def transcribe_parakeet(model, audio, sample_rate):
@@ -144,15 +157,71 @@ def transcribe(engine, model, audio, sample_rate):
 def live_window(buffer, sample_rate, max_seconds):
     max_samples = int(sample_rate * max_seconds)
     if len(buffer) <= max_samples:
-        return np.asarray(buffer, dtype=np.float32)
-    return np.asarray(buffer[-max_samples:], dtype=np.float32)
+        return np.asarray(buffer, dtype=np.float32), False
+    return np.asarray(buffer[-max_samples:], dtype=np.float32), True
+
+
+def normalized_token(token):
+    return re.sub(r"[^\w']+", "", token.casefold())
+
+
+def merge_rolling_transcript(previous, current):
+    """Join overlapping rolling-window transcripts without losing old words."""
+    previous = str(previous or "").strip()
+    current = str(current or "").strip()
+    if not previous:
+        return current
+    if not current:
+        return previous
+
+    previous_words = previous.split()
+    current_words = current.split()
+    previous_keys = [normalized_token(word) for word in previous_words]
+    current_keys = [normalized_token(word) for word in current_words]
+
+    if previous_keys == current_keys:
+        return current
+
+    max_overlap = min(len(previous_keys), len(current_keys))
+    for overlap in range(max_overlap, 0, -1):
+        if previous_keys[-overlap:] == current_keys[:overlap]:
+            return " ".join(previous_words[:-overlap] + current_words)
+
+    # Recognition can revise one or two words between passes. Anchor on the
+    # strongest shared phrase near the moving boundary and replace that tail
+    # with the newer hypothesis.
+    tail_start = max(0, len(previous_keys) - max(24, len(current_keys) * 2))
+    matcher = SequenceMatcher(
+        None,
+        previous_keys[tail_start:],
+        current_keys,
+        autojunk=False,
+    )
+    candidates = [
+        block
+        for block in matcher.get_matching_blocks()
+        if block.size >= 2
+        and block.b <= max(3, len(current_keys) // 3)
+    ]
+    if candidates:
+        anchor = max(candidates, key=lambda block: (block.size, -block.b))
+        previous_anchor = tail_start + anchor.a
+        return " ".join(
+            previous_words[:previous_anchor] + current_words[anchor.b:]
+        )
+
+    # A one-word boundary is still useful for short phrases.
+    if previous_keys[-1] == current_keys[0]:
+        return " ".join(previous_words[:-1] + current_words)
+
+    return f"{previous} {current}".strip()
 
 
 def main():
     parser = argparse.ArgumentParser(description="Project Parrot kept-alive STT worker")
     parser.add_argument("--engine", choices=["parakeet", "small-en"], default="small-en")
     parser.add_argument("--threads", type=int, default=8)
-    parser.add_argument("--update-interval", type=float, default=0.7)
+    parser.add_argument("--update-interval", type=float, default=0.5)
     parser.add_argument("--live-window-seconds", type=float, default=8.0)
     args = parser.parse_args()
 
@@ -192,6 +261,7 @@ def main():
     recording = False
     last_live_at = 0.0
     last_live_text = ""
+    last_emitted_text = ""
 
     try:
         for line in sys.stdin:
@@ -206,6 +276,7 @@ def main():
                     recording = True
                     last_live_at = 0.0
                     last_live_text = ""
+                    last_emitted_text = ""
                     emit({"type": "started"})
 
                 elif message_type == "audio":
@@ -218,13 +289,30 @@ def main():
                     enough_time = now - last_live_at >= args.update_interval
                     if enough_audio and enough_time:
                         last_live_at = now
-                        window = live_window(buffer, sample_rate, args.live_window_seconds)
+                        window, is_rolling = live_window(
+                            buffer,
+                            sample_rate,
+                            args.live_window_seconds,
+                        )
+                        window = normalize_audio(window)
                         live_started = time.perf_counter()
                         text = transcribe(args.engine, model, window, sample_rate)
                         latency_ms = int((time.perf_counter() - live_started) * 1000)
-                        if text and text != last_live_text:
-                            last_live_text = text
-                            emit({"type": "partial", "text": text, "latency_ms": latency_ms})
+                        if text:
+                            last_live_text = (
+                                merge_rolling_transcript(last_live_text, text)
+                                if is_rolling
+                                else text
+                            )
+                        if last_live_text and last_live_text != last_emitted_text:
+                            last_emitted_text = last_live_text
+                            emit(
+                                {
+                                    "type": "partial",
+                                    "text": last_live_text,
+                                    "latency_ms": latency_ms,
+                                }
+                            )
 
                 elif message_type == "stop":
                     recording = False
@@ -237,7 +325,17 @@ def main():
                     final_started = time.perf_counter()
                     text = transcribe(args.engine, model, audio, sample_rate)
                     latency_ms = int((time.perf_counter() - final_started) * 1000)
-                    emit({"type": "final", "text": text, "latency_ms": latency_ms})
+                    used_live_fallback = not text and bool(last_live_text)
+                    if used_live_fallback:
+                        text = last_live_text
+                    emit(
+                        {
+                            "type": "final",
+                            "text": text,
+                            "latency_ms": latency_ms,
+                            "used_live_fallback": used_live_fallback,
+                        }
+                    )
 
                 elif message_type == "shutdown":
                     break

@@ -7,8 +7,8 @@ pub struct Args {
     #[arg(
         long,
         value_parser = ["parakeet", "small-en"],
-        default_value = "small-en",
-        help = "Local CPU STT engine. small-en is faster-whisper default; parakeet is ONNX fallback."
+        default_value = "parakeet",
+        help = "Local CPU STT engine. Parakeet is the recommended default; small-en is the faster-whisper fallback."
     )]
     pub stt: String,
 
@@ -21,13 +21,14 @@ pub struct Args {
     #[arg(
         long,
         default_value = "-1m",
+        allow_hyphen_values = true,
         help = "Ollama keep_alive value for the formatter. Negative duration keeps the model loaded."
     )]
     pub ollama_keep_alive: String,
 
     #[arg(
         long,
-        default_value_t = 1.0,
+        default_value_t = 0.5,
         help = "Seconds between live preview STT passes while recording."
     )]
     pub update_interval: f32,
@@ -38,6 +39,13 @@ pub struct Args {
         help = "Seconds of recent audio used for live preview. Final paste uses full utterance."
     )]
     pub live_window_seconds: f32,
+
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "Accept a `quit` command on stdin for desktop-shell process management."
+    )]
+    pub control_stdin: bool,
 }
 
 pub struct AppConfig {
@@ -50,6 +58,7 @@ pub struct AppConfig {
     pub restore_clipboard: bool,
     pub update_interval: f32,
     pub live_window_seconds: f32,
+    pub control_stdin: bool,
 }
 
 impl AppConfig {
@@ -64,6 +73,7 @@ impl AppConfig {
             restore_clipboard: true,
             update_interval: args.update_interval.clamp(0.25, 3.0),
             live_window_seconds: args.live_window_seconds.clamp(2.0, 30.0),
+            control_stdin: args.control_stdin,
         })
     }
 }
@@ -72,4 +82,24 @@ fn default_threads() -> usize {
     std::thread::available_parallelism()
         .map(|threads| threads.get().saturating_sub(2).max(1))
         .unwrap_or(4)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Args;
+    use clap::Parser;
+
+    #[test]
+    fn defaults_to_the_recommended_models() {
+        let args = Args::try_parse_from(["project-parrot"]).expect("default args should parse");
+        assert_eq!(args.stt, "parakeet");
+        assert_eq!(args.ollama_model, "qwen2.5:3b-instruct");
+    }
+
+    #[test]
+    fn accepts_negative_ollama_keep_alive_values() {
+        let args = Args::try_parse_from(["project-parrot", "--ollama-keep-alive", "-1m"])
+            .expect("negative durations should be accepted as values");
+        assert_eq!(args.ollama_keep_alive, "-1m");
+    }
 }

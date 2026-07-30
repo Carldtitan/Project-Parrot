@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::{Context, Result};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
@@ -15,7 +17,10 @@ impl OllamaCleaner {
         Self {
             model,
             keep_alive,
-            client: Client::new(),
+            client: Client::builder()
+                .timeout(Duration::from_secs(60))
+                .build()
+                .unwrap_or_else(|_| Client::new()),
         }
     }
 
@@ -143,14 +148,19 @@ fn preserves_content(original: &str, cleaned: &str) -> bool {
 
 fn removed_protected_words(original: &str, cleaned: &str) -> bool {
     let protected = [
-        "and", "so", "but", "well", "okay", "ok", "now", "then", "because", "like", "mean",
-        "know",
+        "and", "so", "but", "well", "okay", "ok", "now", "then", "because", "like", "mean", "know",
     ];
     let original_words = all_words(original);
     let cleaned_words = all_words(cleaned);
     protected.iter().any(|word| {
-        original_words.iter().filter(|candidate| *candidate == word).count()
-            > cleaned_words.iter().filter(|candidate| *candidate == word).count()
+        original_words
+            .iter()
+            .filter(|candidate| *candidate == word)
+            .count()
+            > cleaned_words
+                .iter()
+                .filter(|candidate| *candidate == word)
+                .count()
     })
 }
 
@@ -202,4 +212,38 @@ fn levenshtein_distance(left: &str, right: &str, limit: usize) -> usize {
         previous = current;
     }
     previous[right.len()]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{levenshtein_distance, preserves_content, strip_wrapping_quotes};
+
+    #[test]
+    fn strips_matching_wrapping_quotes() {
+        assert_eq!(strip_wrapping_quotes("\"Hello there.\""), "Hello there.");
+        assert_eq!(strip_wrapping_quotes("'Hello there.'"), "Hello there.");
+        assert_eq!(strip_wrapping_quotes("\"Hello there.'"), "\"Hello there.'");
+    }
+
+    #[test]
+    fn content_guard_accepts_punctuation_repairs() {
+        assert!(preserves_content(
+            "okay so we should finish the project tomorrow",
+            "Okay, so we should finish the project tomorrow."
+        ));
+    }
+
+    #[test]
+    fn content_guard_rejects_removed_protected_words() {
+        assert!(!preserves_content(
+            "well I mean we should finish the project tomorrow",
+            "We should finish the project tomorrow."
+        ));
+    }
+
+    #[test]
+    fn bounded_levenshtein_handles_close_and_distant_words() {
+        assert_eq!(levenshtein_distance("project", "projects", 2), 1);
+        assert!(levenshtein_distance("project", "parrot", 2) > 2);
+    }
 }

@@ -1,0 +1,78 @@
+{
+  "name": "project-parrot-desktop",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Private, local-first Windows dictation from anywhere.",
+  "main": "desktop/main.js",
+  "author": "Project Parrot contributors",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build:backend": "cargo build --release",
+    "prestart": "npm run build:backend",
+    "start": "electron .",
+    "start:ui": "electron . --ui-only",
+    "check": "node --check desktop/main.js && node --check desktop/preload.js && node --check desktop/renderer.js && node --check desktop/overlay.js && node --check desktop/settings.js",
+    "test": "npm run check && node --test desktop/*.test.js",
+    "pack": "electron-builder --dir --win",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
+    "playwright": "^1.62.0"
+  },
+  "build": {
+    "appId": "com.projectparrot.desktop",
+    "productName": "Project Parrot",
+    "asar": true,
+    "files": [
+      "desktop/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "extraResources": [
+      {
+        "from": "target/release/project-parrot.exe",
+        "to": "backend/project-parrot.exe"
+      },
+      {
+        "from": ".build/stt_worker",
+        "to": "backend/bin/stt_worker"
+      },
+      {
+        "from": "scripts/setup_models.py",
+        "to": "backend/scripts/setup_models.py"
+      },
+      {
+        "from": "requirements-app.txt",
+        "to": "backend/requirements-app.txt"
+      },
+      {
+        "from": "README.md",
+        "to": "backend/README.md"
+      }
+    ],
+    "win": {
+      "icon": ".build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Project-Parrot-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Project Parrot",
+      "runAfterFinish": true
+    }
+  }
+}

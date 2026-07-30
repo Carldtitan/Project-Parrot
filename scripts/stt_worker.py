@@ -5,6 +5,7 @@ import json
 import re
 import struct
 import sys
+import threading
 import time
 import traceback
 
@@ -20,10 +21,12 @@ FINAL_CHUNK_OVERLAP_SECONDS = 5.0
 FINAL_SPLIT_SEARCH_SECONDS = 5.0
 FINAL_TAIL_RESCUE_MIN_SECONDS = 20.0
 FINAL_TAIL_RESCUE_WINDOW_SECONDS = 18.0
+EMIT_LOCK = threading.Lock()
 
 
 def emit(payload):
-    print(json.dumps(payload, ensure_ascii=True), flush=True)
+    with EMIT_LOCK:
+        print(json.dumps(payload, ensure_ascii=True), flush=True)
 
 
 def decode_f32le(payload):
@@ -556,8 +559,117 @@ def main():
     buffer = []
     recording = False
     next_live_at_samples = 0
-    last_live_text = ""
-    last_emitted_text = ""
+    session_id = 0
+    pending_live = None
+    pending_final = None
+    worker_shutdown = False
+    work_ready = threading.Condition()
+
+    def recognize_pending():
+        nonlocal pending_live, pending_final
+        worker_session = -1
+        last_live_text = ""
+        last_emitted_text = ""
+
+        while True:
+            with work_ready:
+                work_ready.wait_for(
+                    lambda: worker_shutdown
+                    or pending_final is not None
+                    or pending_live is not None
+                )
+                if worker_shutdown:
+                    return
+                if pending_final is not None:
+                    command = ("final", pending_final)
+                    pending_final = None
+                    pending_live = None
+                else:
+                    command = ("live", pending_live)
+                    pending_live = None
+
+            command_type, command_data = command
+            command_session, command_audio, command_rate, *rest = command_data
+            if command_session != worker_session:
+                worker_session = command_session
+                last_live_text = ""
+                last_emitted_text = ""
+
+            try:
+                if command_type == "live":
+                    is_rolling = rest[0]
+                    window = normalize_audio(command_audio)
+                    live_started = time.perf_counter()
+                    text = transcribe(args.engine, model, window, command_rate)
+                    latency_ms = int((time.perf_counter() - live_started) * 1000)
+
+                    with work_ready:
+                        stale = command_session != session_id
+                        final_waiting = pending_final is not None
+                    if stale or final_waiting:
+                        continue
+
+                    if text:
+                        last_live_text = (
+                            merge_rolling_transcript(last_live_text, text)
+                            if is_rolling
+                            else text
+                        )
+                    if last_live_text and last_live_text != last_emitted_text:
+                        last_emitted_text = last_live_text
+                        emit(
+                            {
+                                "type": "partial",
+                                "text": last_live_text,
+                                "latency_ms": latency_ms,
+                            }
+                        )
+                    continue
+
+                audio = prepare_final_audio(command_audio, command_rate)
+                final_started = time.perf_counter()
+                text, chunk_count, used_tail_rescue = transcribe_final(
+                    args.engine,
+                    model,
+                    audio,
+                    command_rate,
+                )
+                latency_ms = int((time.perf_counter() - final_started) * 1000)
+                used_live_fallback = not text and bool(last_live_text)
+                used_live_tail = False
+                if used_live_fallback:
+                    text = last_live_text
+                elif text and last_live_text:
+                    recovered_text = recover_live_tail(text, last_live_text)
+                    used_live_tail = recovered_text != text
+                    text = recovered_text
+                emit(
+                    {
+                        "type": "final",
+                        "text": text,
+                        "latency_ms": latency_ms,
+                        "audio_seconds": round(len(audio) / command_rate, 3),
+                        "chunk_count": chunk_count,
+                        "used_live_fallback": used_live_fallback,
+                        "used_live_tail": used_live_tail,
+                        "used_tail_rescue": used_tail_rescue,
+                    }
+                )
+            except Exception as exc:
+                emit(
+                    {
+                        "type": "error",
+                        "message": str(exc),
+                        "traceback": traceback.format_exc(limit=3),
+                    }
+                )
+
+    recognition_thread = threading.Thread(
+        target=recognize_pending,
+        name="parrot-recognition",
+        daemon=True,
+    )
+    recognition_thread.start()
 
     try:
         for line in sys.stdin:
@@ -571,8 +683,10 @@ def main():
                     buffer = []
                     recording = True
                     next_live_at_samples = int(sample_rate * 0.7)
-                    last_live_text = ""
-                    last_emitted_text = ""
+                    with work_ready:
+                        session_id += 1
+                        pending_live = None
+                        pending_final = None
                     emit({"type": "started"})
 
                 elif message_type == "audio":
@@ -587,31 +701,24 @@ def main():
                             sample_rate,
                             args.live_window_seconds,
                         )
-                        window = normalize_audio(window)
-                        live_started = time.perf_counter()
-                        text = transcribe(args.engine, model, window, sample_rate)
-                        latency_ms = int((time.perf_counter() - live_started) * 1000)
                         next_live_at_samples = next_live_sample_target(
                             len(buffer),
                             sample_rate,
                             args.update_interval,
-                            latency_ms / 1000.0,
+                            0.0,
                         )
-                        if text:
-                            last_live_text = (
-                                merge_rolling_transcript(last_live_text, text)
-                                if is_rolling
-                                else text
+                        with work_ready:
+                            # Keep only the newest snapshot while recognition
+                            # is busy. The input loop remains free to drain the
+                            # microphone pipe, so capture never waits on live
+                            # preview inference.
+                            pending_live = (
+                                session_id,
+                                window,
+                                sample_rate,
+                                is_rolling,
                             )
-                        if last_live_text and last_live_text != last_emitted_text:
-                            last_emitted_text = last_live_text
-                            emit(
-                                {
-                                    "type": "partial",
-                                    "text": last_live_text,
-                                    "latency_ms": latency_ms,
-                                }
-                            )
+                            work_ready.notify()
 
                 elif message_type == "stop":
                     recording = False
@@ -620,41 +727,18 @@ def main():
                         audio = np.asarray(decode_f32le(message["samples"]), dtype=np.float32)
                     else:
                         audio = np.asarray(buffer, dtype=np.float32)
-                    audio = prepare_final_audio(audio, sample_rate)
-                    final_started = time.perf_counter()
-                    text, chunk_count, used_tail_rescue = transcribe_final(
-                        args.engine,
-                        model,
-                        audio,
-                        sample_rate,
-                    )
-                    latency_ms = int((time.perf_counter() - final_started) * 1000)
-                    used_live_fallback = not text and bool(last_live_text)
-                    used_live_tail = False
-                    if used_live_fallback:
-                        text = last_live_text
-                    elif text and last_live_text:
-                        recovered_text = recover_live_tail(text, last_live_text)
-                        used_live_tail = recovered_text != text
-                        text = recovered_text
-                    emit(
-                        {
-                            "type": "final",
-                            "text": text,
-                            "latency_ms": latency_ms,
-                            "audio_seconds": round(len(audio) / sample_rate, 3),
-                            "chunk_count": chunk_count,
-                            "used_live_fallback": used_live_fallback,
-                            "used_live_tail": used_live_tail,
-                            "used_tail_rescue": used_tail_rescue,
-                        }
-                    )
+                    with work_ready:
+                        pending_live = None
+                        pending_final = (session_id, audio, sample_rate)
+                        work_ready.notify()
 
                 elif message_type == "cancel":
                     recording = False
                     buffer = []
-                    last_live_text = ""
-                    last_emitted_text = ""
+                    with work_ready:
+                        session_id += 1
+                        pending_live = None
+                        pending_final = None
 
                 elif message_type == "shutdown":
                     break
@@ -671,6 +755,12 @@ def main():
                     }
                 )
     finally:
+        with work_ready:
+            worker_shutdown = True
+            pending_live = None
+            pending_final = None
+            work_ready.notify()
+        recognition_thread.join()
         del model
 
     return 0

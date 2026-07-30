@@ -342,7 +342,9 @@ fn finish_recording(
         let _ = handle.join();
     }
     let seconds = audio.len() as f32 / config.sample_rate as f32;
+    let (peak, rms) = audio::signal_metrics(&audio);
     log(&format!("Captured {:.1}s audio.", seconds));
+    log(&format!("Capture signal: peak {peak:.4}, RMS {rms:.4}."));
 
     if seconds < 0.25 {
         let _ = stt.cancel_utterance();

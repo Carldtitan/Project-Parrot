@@ -176,7 +176,7 @@ button:disabled {
 
 .nav-item.active {
   color: var(--sidebar-active);
-  background: rgba(255, 255, 255, 0.1);
+  background: transparent;
 }
 
 .nav-item.active::before {
@@ -396,6 +396,10 @@ button:disabled {
 }
 
 .sample-data-note[hidden] {
+  display: none;
+}
+
+.compact-label {
   display: none;
 }
 
@@ -1573,12 +1577,21 @@ textarea:focus {
   }
 
   .dictation-console {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
     gap: 11px;
   }
 
   .dictation-console .secondary-button {
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
+  .full-label {
     display: none;
+  }
+
+  .compact-label {
+    display: inline;
   }
 
   .dictation-copy p {

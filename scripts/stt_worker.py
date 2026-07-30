@@ -281,6 +281,11 @@ def equivalent_token(left, right):
 
 
 def merge_rolling_transcript(previous, current):
+    merged = _merge_rolling_transcript(previous, current)
+    return collapse_live_duplicate(merged)
+
+
+def _merge_rolling_transcript(previous, current):
     """Join overlapping rolling-window transcripts without losing old words."""
     previous = str(previous or "").strip()
     current = str(current or "").strip()
@@ -351,6 +356,47 @@ def merge_rolling_transcript(previous, current):
     if len(previous_words) <= 6 and len(current_words) > len(previous_words):
         return current
     return previous
+
+
+def collapse_live_duplicate(text):
+    """Collapse an adjacent repeated clause in a provisional live hypothesis."""
+    words = str(text or "").split()
+    if len(words) < 12:
+        return str(text or "").strip()
+    keys = [normalized_token(word) for word in words]
+    best = None
+
+    for second_start in range(6, len(words) - 5):
+        for first_start in range(max(0, second_start - 20), second_start - 5):
+            max_length = min(
+                16,
+                second_start - first_start,
+                len(words) - second_start,
+            )
+            for length in range(max_length, 5, -1):
+                gap = second_start - (first_start + length)
+                if gap < 0 or gap > 3:
+                    continue
+                matches = sum(
+                    equivalent_token(left, right)
+                    for left, right in zip(
+                        keys[first_start : first_start + length],
+                        keys[second_start : second_start + length],
+                    )
+                )
+                if matches / length < 0.80:
+                    continue
+                candidate = (length, -gap, first_start, second_start)
+                if best is None or candidate > best:
+                    best = candidate
+                break
+
+    if best is None:
+        return str(text or "").strip()
+
+    length, _negative_gap, _first_start, second_start = best
+    collapsed = words[:second_start] + words[second_start + length :]
+    return " ".join(collapsed).strip()
 
 
 def merge_final_segments(previous, current):

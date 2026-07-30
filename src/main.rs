@@ -33,7 +33,10 @@ use crate::{
     text_intelligence::TextIntelligence,
 };
 
-const FINAL_CAPTURE_GRACE: Duration = Duration::from_millis(180);
+const RELEASE_TAIL_MINIMUM: Duration = Duration::from_millis(600);
+const RELEASE_TAIL_SILENCE_WINDOW: Duration = Duration::from_millis(300);
+const RELEASE_TAIL_MAXIMUM: Duration = Duration::from_millis(1_600);
+const RELEASE_TAIL_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 fn main() -> Result<()> {
     let args = Args::parse();
@@ -257,11 +260,18 @@ fn start_recording(
     audio_forwarder: &mut Option<thread::JoinHandle<()>>,
     hands_free: bool,
 ) -> Result<Instant> {
-    stt.begin_utterance()?;
     // Audio capture must never be lossy just because live recognition is
     // temporarily slower than the microphone. The previous two-item bounded
     // queue intentionally discarded chunks under load.
     let (audio_tx, audio_rx) = mpsc::channel::<Vec<f32>>();
+    // Open the microphone before waiting for the worker acknowledgement. The
+    // unbounded channel holds these first callbacks, so speech that starts
+    // immediately on key-down is included in the final pass.
+    recorder.start_with_sender(audio_tx)?;
+    if let Err(error) = stt.begin_utterance() {
+        let _ = recorder.stop();
+        return Err(error);
+    }
     let sink = stt.audio_sink();
     let live_send_interval = Duration::from_secs_f32(config.update_interval.max(0.25));
     *audio_forwarder = Some(thread::spawn(move || {
@@ -282,7 +292,6 @@ fn start_recording(
             let _ = sink.send_audio(&pending);
         }
     }));
-    recorder.start_with_sender(audio_tx)?;
     log(if hands_free {
         "Hands-free recording started."
     } else {
@@ -312,16 +321,30 @@ fn finish_recording(
     inserter: &TextInserter,
     active_window: &str,
 ) -> Result<Option<String>> {
-    // Key-up can arrive while the microphone driver still has the final
-    // phoneme in flight. Keep the stream open briefly so the last word is not
-    // clipped before the full-utterance recognition pass.
-    thread::sleep(FINAL_CAPTURE_GRACE);
+    let tail = recorder.wait_for_release_tail(
+        RELEASE_TAIL_MINIMUM,
+        RELEASE_TAIL_SILENCE_WINDOW,
+        RELEASE_TAIL_MAXIMUM,
+        RELEASE_TAIL_POLL_INTERVAL,
+    );
+    log(&format!(
+        "Release tail captured {:.2}s of audio over {:.2}s ({}).",
+        tail.appended_seconds,
+        tail.waited.as_secs_f32(),
+        if tail.ended_on_silence {
+            "quiet boundary found"
+        } else {
+            "maximum cushion reached"
+        }
+    ));
     let audio = recorder.stop()?;
     if let Some(handle) = audio_forwarder.take() {
         let _ = handle.join();
     }
     let seconds = audio.len() as f32 / config.sample_rate as f32;
+    let (peak, rms) = audio::signal_metrics(&audio);
     log(&format!("Captured {:.1}s audio.", seconds));
+    log(&format!("Capture signal: peak {peak:.4}, RMS {rms:.4}."));
 
     if seconds < 0.25 {
         let _ = stt.cancel_utterance();

@@ -218,6 +218,8 @@ def main() -> int:
             "fixture_segments": fixture_segments,
             "final_chunk_count": final.get("chunk_count"),
             "recognized_audio_seconds": final.get("audio_seconds"),
+            "used_tail_rescue": final.get("used_tail_rescue", False),
+            "used_live_tail": final.get("used_live_tail", False),
             "wall_seconds": round(elapsed, 3),
             "partial_count": len(partials),
             "first_partial": partials[0]["text"] if partials else "",

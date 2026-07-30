@@ -56,6 +56,8 @@ enum WorkerMessage {
         used_live_fallback: bool,
         #[serde(default)]
         used_live_tail: bool,
+        #[serde(default)]
+        used_tail_rescue: bool,
     },
     #[serde(rename = "error")]
     Error { message: String },
@@ -160,6 +162,7 @@ impl SttWorker {
                         chunk_count,
                         used_live_fallback,
                         used_live_tail,
+                        used_tail_rescue,
                     }) => {
                         if let Some(latency_ms) = latency_ms {
                             log(&format!("Final STT latency: {latency_ms}ms"));
@@ -169,6 +172,9 @@ impl SttWorker {
                         }
                         if used_live_tail {
                             log("Restored a trailing phrase from the recognized live transcript.");
+                        }
+                        if used_tail_rescue {
+                            log("Restored final words with the dedicated ending pass.");
                         }
                         if let (Some(audio_seconds), Some(chunk_count)) =
                             (audio_seconds, chunk_count)

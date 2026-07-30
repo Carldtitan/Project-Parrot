@@ -5,6 +5,7 @@ import json
 import re
 import struct
 import sys
+import threading
 import time
 import traceback
 
@@ -18,10 +19,14 @@ FINAL_DIRECT_PASS_SECONDS = 90.0
 FINAL_CHUNK_SECONDS = 60.0
 FINAL_CHUNK_OVERLAP_SECONDS = 5.0
 FINAL_SPLIT_SEARCH_SECONDS = 5.0
+FINAL_TAIL_RESCUE_MIN_SECONDS = 20.0
+FINAL_TAIL_RESCUE_WINDOW_SECONDS = 18.0
+EMIT_LOCK = threading.Lock()
 
 
 def emit(payload):
-    print(json.dumps(payload, ensure_ascii=True), flush=True)
+    with EMIT_LOCK:
+        print(json.dumps(payload, ensure_ascii=True), flush=True)
 
 
 def decode_f32le(payload):
@@ -222,22 +227,41 @@ def transcribe_final(engine, model, audio, sample_rate):
     # recordings that approach the model's practical context limit.
     if len(audio) <= int(sample_rate * FINAL_DIRECT_PASS_SECONDS):
         prepared = normalize_audio(audio)
-        return transcribe(engine, model, prepared, sample_rate).strip(), 1
+        text = transcribe(engine, model, prepared, sample_rate).strip()
+        chunk_count = 1
+    else:
+        chunks = split_final_audio(audio, sample_rate)
+        text = ""
+        segment_padding = np.zeros(
+            int(sample_rate * FINAL_TRAILING_PADDING_SECONDS),
+            dtype=np.float32,
+        )
+        for index, chunk in enumerate(chunks):
+            prepared = normalize_audio(chunk)
+            if index < len(chunks) - 1 and not is_probably_silence(prepared):
+                prepared = np.concatenate((prepared, segment_padding))
+            segment = transcribe(engine, model, prepared, sample_rate)
+            if segment:
+                text = merge_final_segments(text, segment)
+        text = text.strip()
+        chunk_count = len(chunks)
 
-    chunks = split_final_audio(audio, sample_rate)
-    merged = ""
-    segment_padding = np.zeros(
-        int(sample_rate * FINAL_TRAILING_PADDING_SECONDS),
-        dtype=np.float32,
-    )
-    for index, chunk in enumerate(chunks):
-        prepared = normalize_audio(chunk)
-        if index < len(chunks) - 1 and not is_probably_silence(prepared):
-            prepared = np.concatenate((prepared, segment_padding))
-        segment = transcribe(engine, model, prepared, sample_rate)
-        if segment:
-            merged = merge_final_segments(merged, segment)
-    return merged.strip(), len(chunks)
+    # A dedicated view of the ending gives the transducer a much shorter
+    # context in which to resolve the final phrase. Only append words found
+    # after a shared boundary anchor, so this pass cannot rewrite the main
+    # transcript or duplicate an unrelated hypothesis.
+    used_tail_rescue = False
+    minimum_samples = int(sample_rate * FINAL_TAIL_RESCUE_MIN_SECONDS)
+    if text and len(audio) >= minimum_samples:
+        window_samples = int(sample_rate * FINAL_TAIL_RESCUE_WINDOW_SECONDS)
+        tail_audio = normalize_audio(audio[-window_samples:])
+        tail_text = transcribe(engine, model, tail_audio, sample_rate).strip()
+        if tail_text:
+            recovered = recover_live_tail(text, tail_text)
+            used_tail_rescue = recovered != text
+            text = recovered
+
+    return text.strip(), chunk_count, used_tail_rescue
 
 
 def live_window(buffer, sample_rate, max_seconds):
@@ -247,11 +271,37 @@ def live_window(buffer, sample_rate, max_seconds):
     return np.asarray(buffer[-max_samples:], dtype=np.float32), True
 
 
+def next_live_sample_target(
+    current_samples,
+    sample_rate,
+    configured_interval,
+    recognition_latency,
+):
+    # Schedule from audio progress, not wall-clock time. If recognition itself
+    # is slower than the requested cadence, coalesce queued microphone chunks
+    # instead of transcribing every stale message and falling farther behind.
+    interval = max(0.25, configured_interval, recognition_latency * 1.25)
+    return current_samples + max(1, int(sample_rate * interval))
+
+
 def normalized_token(token):
     return re.sub(r"[^\w']+", "", token.casefold())
 
 
+def equivalent_token(left, right):
+    if left == right:
+        return True
+    if min(len(left), len(right)) < 4:
+        return False
+    return SequenceMatcher(None, left, right, autojunk=False).ratio() >= 0.78
+
+
 def merge_rolling_transcript(previous, current):
+    merged = _merge_rolling_transcript(previous, current)
+    return collapse_live_duplicate(merged)
+
+
+def _merge_rolling_transcript(previous, current):
     """Join overlapping rolling-window transcripts without losing old words."""
     previous = str(previous or "").strip()
     current = str(current or "").strip()
@@ -273,6 +323,20 @@ def merge_rolling_transcript(previous, current):
         if previous_keys[-overlap:] == current_keys[:overlap]:
             return " ".join(previous_words[:-overlap] + current_words)
 
+    # The recognizer often revises one proper name at the moving boundary
+    # ("Quilton" -> "Quilter", "Mr." -> "Mister"). Treat a mostly equivalent
+    # suffix/prefix as overlap instead of duplicating the whole window.
+    for overlap in range(max_overlap, 1, -1):
+        equivalent = sum(
+            equivalent_token(left, right)
+            for left, right in zip(
+                previous_keys[-overlap:],
+                current_keys[:overlap],
+            )
+        )
+        if equivalent / overlap >= 0.80:
+            return " ".join(previous_words[:-overlap] + current_words)
+
     # Recognition can revise one or two words between passes. Anchor on the
     # strongest shared phrase near the moving boundary and replace that tail
     # with the newer hypothesis.
@@ -287,7 +351,7 @@ def merge_rolling_transcript(previous, current):
         block
         for block in matcher.get_matching_blocks()
         if block.size >= 2
-        and block.b <= max(3, len(current_keys) // 3)
+        and block.b <= max(3, len(current_keys) // 2)
     ]
     if candidates:
         anchor = max(candidates, key=lambda block: (block.size, -block.b))
@@ -297,10 +361,58 @@ def merge_rolling_transcript(previous, current):
         )
 
     # A one-word boundary is still useful for short phrases.
-    if previous_keys[-1] == current_keys[0]:
+    if equivalent_token(previous_keys[-1], current_keys[0]):
         return " ".join(previous_words[:-1] + current_words)
 
-    return f"{previous} {current}".strip()
+    # Consecutive rolling windows overlap by almost their entire duration. If
+    # no reliable anchor survives a recognition revision, appending both
+    # hypotheses creates obvious duplicate paragraphs. Replace a tiny startup
+    # hypothesis with the fuller window; otherwise hold the stable transcript
+    # and wait for the next update to provide a usable anchor.
+    if len(previous_words) <= 6 and len(current_words) > len(previous_words):
+        return current
+    return previous
+
+
+def collapse_live_duplicate(text):
+    """Collapse an adjacent repeated clause in a provisional live hypothesis."""
+    words = str(text or "").split()
+    if len(words) < 12:
+        return str(text or "").strip()
+    keys = [normalized_token(word) for word in words]
+    best = None
+
+    for second_start in range(6, len(words) - 5):
+        for first_start in range(max(0, second_start - 20), second_start - 5):
+            max_length = min(
+                16,
+                second_start - first_start,
+                len(words) - second_start,
+            )
+            for length in range(max_length, 5, -1):
+                gap = second_start - (first_start + length)
+                if gap < 0 or gap > 3:
+                    continue
+                matches = sum(
+                    equivalent_token(left, right)
+                    for left, right in zip(
+                        keys[first_start : first_start + length],
+                        keys[second_start : second_start + length],
+                    )
+                )
+                if matches / length < 0.80:
+                    continue
+                candidate = (length, -gap, first_start, second_start)
+                if best is None or candidate > best:
+                    best = candidate
+                break
+
+    if best is None:
+        return str(text or "").strip()
+
+    length, _negative_gap, _first_start, second_start = best
+    collapsed = words[:second_start] + words[second_start + length :]
+    return " ".join(collapsed).strip()
 
 
 def merge_final_segments(previous, current):
@@ -332,13 +444,6 @@ def merge_final_segments(previous, current):
     previous_tail = previous_keys[previous_tail_start:]
     current_head = current_keys[:current_head_end]
 
-    def equivalent(left, right):
-        if left == right:
-            return True
-        if min(len(left), len(right)) < 4:
-            return False
-        return SequenceMatcher(None, left, right, autojunk=False).ratio() >= 0.78
-
     anchors = []
     for previous_index in range(len(previous_tail)):
         for current_index in range(min(9, len(current_head))):
@@ -346,7 +451,7 @@ def merge_final_segments(previous, current):
             while (
                 previous_index + length < len(previous_tail)
                 and current_index + length < len(current_head)
-                and equivalent(
+                and equivalent_token(
                     previous_tail[previous_index + length],
                     current_head[current_index + length],
                 )
@@ -453,9 +558,116 @@ def main():
 
     buffer = []
     recording = False
-    last_live_at = 0.0
-    last_live_text = ""
-    last_emitted_text = ""
+    next_live_at_samples = 0
+    session_id = 0
+    pending_live = None
+    pending_final = None
+    worker_shutdown = False
+    work_ready = threading.Condition()
+
+    def recognize_pending():
+        nonlocal pending_live, pending_final
+        worker_session = -1
+        last_live_text = ""
+        last_emitted_text = ""
+
+        while True:
+            with work_ready:
+                work_ready.wait_for(
+                    lambda: worker_shutdown
+                    or pending_final is not None
+                    or pending_live is not None
+                )
+                if worker_shutdown:
+                    return
+                if pending_final is not None and pending_live is None:
+                    command = ("final", pending_final)
+                    pending_final = None
+                else:
+                    command = ("live", pending_live)
+                    pending_live = None
+
+            command_type, command_data = command
+            command_session, command_audio, command_rate, *rest = command_data
+            if command_session != worker_session:
+                worker_session = command_session
+                last_live_text = ""
+                last_emitted_text = ""
+
+            try:
+                if command_type == "live":
+                    is_rolling = rest[0]
+                    window = normalize_audio(command_audio)
+                    live_started = time.perf_counter()
+                    text = transcribe(args.engine, model, window, command_rate)
+                    latency_ms = int((time.perf_counter() - live_started) * 1000)
+
+                    with work_ready:
+                        stale = command_session != session_id
+                    if stale:
+                        continue
+
+                    if text:
+                        last_live_text = (
+                            merge_rolling_transcript(last_live_text, text)
+                            if is_rolling
+                            else text
+                        )
+                    if last_live_text and last_live_text != last_emitted_text:
+                        last_emitted_text = last_live_text
+                        emit(
+                            {
+                                "type": "partial",
+                                "text": last_live_text,
+                                "latency_ms": latency_ms,
+                            }
+                        )
+                    continue
+
+                audio = prepare_final_audio(command_audio, command_rate)
+                final_started = time.perf_counter()
+                text, chunk_count, used_tail_rescue = transcribe_final(
+                    args.engine,
+                    model,
+                    audio,
+                    command_rate,
+                )
+                latency_ms = int((time.perf_counter() - final_started) * 1000)
+                used_live_fallback = not text and bool(last_live_text)
+                used_live_tail = False
+                if used_live_fallback:
+                    text = last_live_text
+                elif text and last_live_text:
+                    recovered_text = recover_live_tail(text, last_live_text)
+                    used_live_tail = recovered_text != text
+                    text = recovered_text
+                emit(
+                    {
+                        "type": "final",
+                        "text": text,
+                        "latency_ms": latency_ms,
+                        "audio_seconds": round(len(audio) / command_rate, 3),
+                        "chunk_count": chunk_count,
+                        "used_live_fallback": used_live_fallback,
+                        "used_live_tail": used_live_tail,
+                        "used_tail_rescue": used_tail_rescue,
+                    }
+                )
+            except Exception as exc:
+                emit(
+                    {
+                        "type": "error",
+                        "message": str(exc),
+                        "traceback": traceback.format_exc(limit=3),
+                    }
+                )
+
+    recognition_thread = threading.Thread(
+        target=recognize_pending,
+        name="parrot-recognition",
+        daemon=True,
+    )
+    recognition_thread.start()
 
     try:
         for line in sys.stdin:
@@ -468,9 +680,11 @@ def main():
                 if message_type == "start":
                     buffer = []
                     recording = True
-                    last_live_at = 0.0
-                    last_live_text = ""
-                    last_emitted_text = ""
+                    next_live_at_samples = int(sample_rate * 0.7)
+                    with work_ready:
+                        session_id += 1
+                        pending_live = None
+                        pending_final = None
                     emit({"type": "started"})
 
                 elif message_type == "audio":
@@ -478,35 +692,31 @@ def main():
                         continue
                     sample_rate = int(message.get("sample_rate", sample_rate))
                     buffer.extend(decode_f32le(message["samples"]))
-                    now = time.perf_counter()
-                    enough_audio = len(buffer) >= int(sample_rate * 0.7)
-                    enough_time = now - last_live_at >= args.update_interval
-                    if enough_audio and enough_time:
-                        last_live_at = now
+                    enough_audio = len(buffer) >= next_live_at_samples
+                    if enough_audio:
                         window, is_rolling = live_window(
                             buffer,
                             sample_rate,
                             args.live_window_seconds,
                         )
-                        window = normalize_audio(window)
-                        live_started = time.perf_counter()
-                        text = transcribe(args.engine, model, window, sample_rate)
-                        latency_ms = int((time.perf_counter() - live_started) * 1000)
-                        if text:
-                            last_live_text = (
-                                merge_rolling_transcript(last_live_text, text)
-                                if is_rolling
-                                else text
+                        next_live_at_samples = next_live_sample_target(
+                            len(buffer),
+                            sample_rate,
+                            args.update_interval,
+                            0.0,
+                        )
+                        with work_ready:
+                            # Keep only the newest snapshot while recognition
+                            # is busy. The input loop remains free to drain the
+                            # microphone pipe, so capture never waits on live
+                            # preview inference.
+                            pending_live = (
+                                session_id,
+                                window,
+                                sample_rate,
+                                is_rolling,
                             )
-                        if last_live_text and last_live_text != last_emitted_text:
-                            last_emitted_text = last_live_text
-                            emit(
-                                {
-                                    "type": "partial",
-                                    "text": last_live_text,
-                                    "latency_ms": latency_ms,
-                                }
-                            )
+                            work_ready.notify()
 
                 elif message_type == "stop":
                     recording = False
@@ -515,40 +725,17 @@ def main():
                         audio = np.asarray(decode_f32le(message["samples"]), dtype=np.float32)
                     else:
                         audio = np.asarray(buffer, dtype=np.float32)
-                    audio = prepare_final_audio(audio, sample_rate)
-                    final_started = time.perf_counter()
-                    text, chunk_count = transcribe_final(
-                        args.engine,
-                        model,
-                        audio,
-                        sample_rate,
-                    )
-                    latency_ms = int((time.perf_counter() - final_started) * 1000)
-                    used_live_fallback = not text and bool(last_live_text)
-                    used_live_tail = False
-                    if used_live_fallback:
-                        text = last_live_text
-                    elif text and last_live_text:
-                        recovered_text = recover_live_tail(text, last_live_text)
-                        used_live_tail = recovered_text != text
-                        text = recovered_text
-                    emit(
-                        {
-                            "type": "final",
-                            "text": text,
-                            "latency_ms": latency_ms,
-                            "audio_seconds": round(len(audio) / sample_rate, 3),
-                            "chunk_count": chunk_count,
-                            "used_live_fallback": used_live_fallback,
-                            "used_live_tail": used_live_tail,
-                        }
-                    )
+                    with work_ready:
+                        pending_final = (session_id, audio, sample_rate)
+                        work_ready.notify()
 
                 elif message_type == "cancel":
                     recording = False
                     buffer = []
-                    last_live_text = ""
-                    last_emitted_text = ""
+                    with work_ready:
+                        session_id += 1
+                        pending_live = None
+                        pending_final = None
 
                 elif message_type == "shutdown":
                     break
@@ -565,6 +752,12 @@ def main():
                     }
                 )
     finally:
+        with work_ready:
+            worker_shutdown = True
+            pending_live = None
+            pending_final = None
+            work_ready.notify()
+        recognition_thread.join()
         del model
 
     return 0

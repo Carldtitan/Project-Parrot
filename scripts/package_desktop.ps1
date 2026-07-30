@@ -10,6 +10,7 @@ $BuildRoot = Join-Path $Root ".build"
 $WorkerOutput = Join-Path $BuildRoot "stt_worker"
 $WorkerScratch = Join-Path $BuildRoot "pyinstaller-work-clean"
 $IconPath = Join-Path $BuildRoot "icon.png"
+$BrandIconPath = Join-Path $Root "desktop\assets\brand\parrot-app-icon.png"
 
 Set-Location $Root
 
@@ -115,13 +116,10 @@ Write-Host "4/4 Creating the Windows installer..."
 if (-not (Test-Path $BuildRoot)) {
     New-Item -ItemType Directory -Path $BuildRoot | Out-Null
 }
-node `
-    scripts\render_brand_icon.cjs `
-    $IconPath `
-    256
-if ($LASTEXITCODE -ne 0) {
-    throw "Parrot icon rendering failed."
+if (-not (Test-Path -LiteralPath $BrandIconPath)) {
+    throw "The committed Parrot application icon is missing."
 }
+Copy-Item -LiteralPath $BrandIconPath -Destination $IconPath -Force
 npm run dist
 if ($LASTEXITCODE -ne 0) {
     throw "Electron packaging failed."

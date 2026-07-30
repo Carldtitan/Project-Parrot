@@ -446,7 +446,10 @@ def benchmark_model(args: argparse.Namespace, model: str, cases: list[Case]) -> 
                 strip_wrapping_quotes(str(response.get("response", "")).strip()),
             )
             used_retry = False
+            retry_attempted = False
+            fallback_to_raw = False
             if output and not preserves_content(case.raw, output):
+                retry_attempted = True
                 retry_response = post_json(
                     args.endpoint,
                     {
@@ -478,6 +481,9 @@ def benchmark_model(args: argparse.Namespace, model: str, cases: list[Case]) -> 
                     output = retried
                     response = retry_response
                     used_retry = True
+            if not output or not preserves_content(case.raw, output):
+                output = case.raw
+                fallback_to_raw = True
             scores = quality_scores(case, output)
             rows.append(
                 {
@@ -492,7 +498,9 @@ def benchmark_model(args: argparse.Namespace, model: str, cases: list[Case]) -> 
                         response.get("eval_count", 0)
                         / max(0.001, response.get("eval_duration", 0) / 1_000_000_000)
                     ),
+                    "retry_attempted": retry_attempted,
                     "used_retry": used_retry,
+                    "fallback_to_raw": fallback_to_raw,
                     "raw": case.raw,
                     "expected": case.expected,
                     "output": output,

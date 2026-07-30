@@ -11,12 +11,18 @@ related_targets: ["desktop/styles.css","desktop/renderer.js","desktop/overlay.ht
 - Audience: Windows professionals and developers who want fast, private dictation into the app already in use; the shell must also communicate real product judgment to a recruiter.
 - Job and primary actions: verify readiness, start push-to-talk or hands-free dictation, read live words, cancel safely, and recover the previous result.
 - Proof and content: real live transcript state, recoverable on-device history, device-only usage totals, dictionary/snippets, and explicit local processing status.
-- Constraints: keep the established workflows and element IDs, work at 760×600 through 960×720, stay keyboard and side-mouse accessible, and never invent usage or accuracy claims.
+- Constraints: keep the established workflows and element IDs, work at 760×600 through the 1080×760 launch size, stay keyboard and side-mouse accessible, and never invent usage or accuracy claims.
 - Chosen direction: the familiar desktop-dictation canon executed as a premium broadcast-caption desk—deep aubergine ink, cool chalk-lavender, and a single parrot-chartreuse command signal; Schibsted Grotesk replaces the incumbent Segoe system.
 - Approved comp: `.impeccable/mocks/parrot-caption-stage.png`.
 - Memorable moment: the live transcript is the central typographic stage while the last three dictations remain visible as a narrow session-memory strip; a bottom transport keeps both dictation modes and recovery one glance away.
 - Do not literalize: sample transcript/history text, speculative durations, or any generated-image wording. Render only real application state.
 - Unresolved: code signing and a real-microphone release check remain distribution concerns.
+
+## Verification
+
+- Home, History, Personalize, Settings, the recording state, and the floating overlay were visually inspected in Electron.
+- The 760×600 Home surface retains start, shortcut, timer, recovery, and recording cancellation without horizontal or fixed-shell scrolling.
+- The live worker protocol produced four partial updates and a 5.88% normalized final WER on the clean release fixture; a human-speaking paste capture remains a manual release check.
 
 ## Implementation inventory
 

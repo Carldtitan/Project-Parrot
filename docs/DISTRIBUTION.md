@@ -54,14 +54,15 @@ large and have their own upstream licenses and cache lifecycle.
 2. Run `cargo test --locked`.
 3. Run `npm test`.
 4. Run `npm run test:e2e`.
-5. Run `python -m unittest scripts.test_stt_worker`.
-6. Run `scripts\package_windows.ps1`.
-7. Install the generated NSIS package on a clean Windows user account.
-8. Confirm the app starts in the tray and the settings window can be closed.
-9. Test push-to-talk, hands-free, cancel, and paste-previous in Notepad.
-10. Test spoken lists and developer-aware formatting in a multiline editor.
-11. Add a dictionary entry and snippet, then confirm both affect a dictation.
-12. Confirm history and usage totals persist after restarting the app.
-13. Optionally pull Qwen using **Install formatter** under Advanced settings.
-14. Confirm **Quit Project Parrot** removes both the Rust and STT worker
+5. Run `npm run verify:live-stt`.
+6. Run `python -m unittest scripts.test_stt_worker`.
+7. Run `scripts\package_windows.ps1`.
+8. Install the generated NSIS package on a clean Windows user account.
+9. Confirm the app starts in the tray and the settings window can be closed.
+10. Test push-to-talk, hands-free, cancel, and paste-previous in Notepad.
+11. Test spoken lists and developer-aware formatting in a multiline editor.
+12. Add a dictionary entry and snippet, then confirm both affect a dictation.
+13. Confirm history and usage totals persist after restarting the app.
+14. Optionally pull Qwen using **Install formatter** under Advanced settings.
+15. Confirm **Quit Project Parrot** removes both the Rust and STT worker
    processes.

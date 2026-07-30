@@ -116,9 +116,14 @@ cargo fmt --all -- --check
 cargo test --locked
 npm test
 npm run test:e2e
+npm run verify:live-stt
 python -m unittest scripts.test_stt_worker
 python -m compileall -q parrot scripts
 ```
+
+`verify:live-stt` streams a known clean speech sample through the same kept-alive
+worker protocol used during dictation. It fails unless Parrot produces live
+partials and a final transcript below the configured word-error threshold.
 
 ## Package and release
 

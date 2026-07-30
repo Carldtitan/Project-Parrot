@@ -12,11 +12,11 @@
   </head>
   <body class="main-page" data-state="starting">
     <!--
-      THESIS: Parrot is a quiet instrument for dictating into other apps, not a dashboard of decorative cards.
-      OWN-WORLD: Cool paper-gray workspace, ink navigation rail, cobalt action color, sharp dividers, and compact native controls.
-      STORY: Confirm readiness, dictate immediately, recover recent work, then personalize only when needed.
-      FIRST VIEWPORT: Persistent left navigation; a slim status bar; recording control, live text, recent activity, and honest local stats in one continuous workspace.
-      FORM: Familiar desktop dictation canon selected by the user; Windows-native staging; seed key canon-wispr-windows-20260729.
+      THESIS: Live speech is a caption stage, not a utility dashboard or a stack of settings cards.
+      OWN-WORLD: Aubergine ink, chalk-lavender fields, parrot-chartreuse commands, Schibsted Grotesk, and editorial rules form a broadcast-caption desk.
+      STORY: Confirm local readiness, dictate immediately, watch words land, and recover recent takes without leaving the live surface.
+      FIRST VIEWPORT: A labeled rail anchors the left, live text owns the center, session memory holds the right edge, and one bottom transport carries every dictation control.
+      FORM: Familiar desktop-dictation canon with Caption Stage staging; approved comp parrot-caption-stage.png; seed key canon-caption-stage-4510822d.
       FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
     -->
     <div class="desktop-shell">
@@ -84,14 +84,60 @@
           <section id="view-home" class="app-view active" data-view="home">
             <header class="view-heading home-heading">
               <div>
-                <h1>Ready when you are</h1>
-                <p>Speak into any text field. Parrot handles the cleanup and paste.</p>
+                <p class="eyebrow">Private desktop dictation</p>
+                <h1>Speak. It lands.</h1>
+                <p>Keep typing where you are. Parrot listens, cleans up your words, and pastes them back.</p>
                 <span id="sample-data-note" class="sample-data-note" hidden>Sample preview data</span>
               </div>
-              <button id="paste-last-button" class="secondary-button" type="button">
-                Paste previous
-              </button>
             </header>
+
+            <div class="caption-stage">
+              <section class="transcript-surface" aria-labelledby="transcript-heading">
+                <header>
+                  <div>
+                    <p class="eyebrow">Now</p>
+                    <h2 id="transcript-heading">Live transcript</h2>
+                    <span id="transcript-state">Waiting for speech</span>
+                  </div>
+                  <button id="copy-button" class="text-button" type="button" disabled>
+                    Copy text
+                  </button>
+                </header>
+                <p id="live-transcript" class="live-transcript empty">
+                  Your words will appear here as you speak.
+                </p>
+              </section>
+
+              <aside class="session-memory" aria-labelledby="recent-heading">
+                <header class="section-heading">
+                  <div>
+                    <p class="eyebrow">This session</p>
+                    <h2 id="recent-heading">Memory</h2>
+                  </div>
+                  <button class="text-button" type="button" data-view-link="history">All</button>
+                </header>
+                <div id="recent-list" class="activity-list"></div>
+                <dl class="stats-grid">
+                  <div>
+                    <dt>Words</dt>
+                    <dd id="today-words">0</dd>
+                  </div>
+                  <div>
+                    <dt>Pace</dt>
+                    <dd id="average-wpm">0</dd>
+                    <small>wpm</small>
+                  </div>
+                  <div>
+                    <dt>Takes</dt>
+                    <dd id="session-count">0</dd>
+                  </div>
+                  <div>
+                    <dt>Days</dt>
+                    <dd id="active-days">0</dd>
+                  </div>
+                </dl>
+              </aside>
+            </div>
 
             <section class="dictation-console" aria-labelledby="dictation-title">
               <button
@@ -112,72 +158,17 @@
                   <kbd id="primary-shortcut">Ctrl + Space</kbd>
                   <span id="dictation-title-suffix">to dictate</span>
                 </h2>
-                <p id="dictation-message">Release the shortcut when you finish. Parrot pastes into the app you were using.</p>
+                <p id="dictation-message">Release to clean up and paste into the app you were using.</p>
               </div>
               <time id="recording-timer" class="recording-timer" aria-label="Recording duration">00:00</time>
+              <button id="paste-last-button" class="secondary-button" type="button">
+                <span class="full-label">Paste previous</span>
+                <span class="compact-label">Paste last</span>
+              </button>
               <button id="cancel-button" class="danger-button" type="button" disabled>
                 Cancel
               </button>
             </section>
-
-            <section class="transcript-surface" aria-labelledby="transcript-heading">
-              <header>
-                <div>
-                  <h2 id="transcript-heading">Live transcript</h2>
-                  <span id="transcript-state">Waiting for speech</span>
-                </div>
-                <button id="copy-button" class="text-button" type="button" disabled>
-                  Copy
-                </button>
-              </header>
-              <p id="live-transcript" class="live-transcript empty">
-                Your words appear here while you speak.
-              </p>
-            </section>
-
-            <div class="home-lower">
-              <section class="recent-section" aria-labelledby="recent-heading">
-                <header class="section-heading">
-                  <div>
-                    <h2 id="recent-heading">Recent</h2>
-                    <p>Your latest recoverable dictations</p>
-                  </div>
-                  <button class="text-button" type="button" data-view-link="history">View all</button>
-                </header>
-                <div id="recent-list" class="activity-list"></div>
-              </section>
-
-              <section class="stats-section" aria-labelledby="stats-heading">
-                <header class="section-heading">
-                  <div>
-                    <h2 id="stats-heading">This device</h2>
-                    <p>Private usage totals</p>
-                  </div>
-                </header>
-                <dl class="stats-grid">
-                  <div>
-                    <dt>Today</dt>
-                    <dd id="today-words">0</dd>
-                    <small>words</small>
-                  </div>
-                  <div>
-                    <dt>Average</dt>
-                    <dd id="average-wpm">0</dd>
-                    <small>wpm</small>
-                  </div>
-                  <div>
-                    <dt>Sessions</dt>
-                    <dd id="session-count">0</dd>
-                    <small>saved</small>
-                  </div>
-                  <div>
-                    <dt>Active</dt>
-                    <dd id="active-days">0</dd>
-                    <small>days</small>
-                  </div>
-                </dl>
-              </section>
-            </div>
           </section>
 
           <section id="view-history" class="app-view" data-view="history" hidden>

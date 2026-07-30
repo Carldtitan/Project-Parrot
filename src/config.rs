@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use clap::Parser;
 
@@ -46,10 +48,30 @@ pub struct Args {
         help = "Accept a `quit` command on stdin for desktop-shell process management."
     )]
     pub control_stdin: bool,
+
+    #[arg(long, default_value = "Ctrl+Space")]
+    pub push_to_talk_shortcut: String,
+
+    #[arg(long, default_value = "Ctrl+Alt+Space")]
+    pub hands_free_shortcut: String,
+
+    #[arg(long, default_value = "Ctrl+Alt+Escape")]
+    pub cancel_shortcut: String,
+
+    #[arg(long, default_value = "Ctrl+Alt+V")]
+    pub paste_last_shortcut: String,
+
+    #[arg(long)]
+    pub personalization_path: Option<PathBuf>,
+
+    #[arg(long, default_value_t = 1140)]
+    pub session_warning_seconds: u64,
+
+    #[arg(long, default_value_t = 1200)]
+    pub session_limit_seconds: u64,
 }
 
 pub struct AppConfig {
-    pub hotkey_label: &'static str,
     pub sample_rate: u32,
     pub stt_engine: String,
     pub stt_threads: usize,
@@ -59,12 +81,18 @@ pub struct AppConfig {
     pub update_interval: f32,
     pub live_window_seconds: f32,
     pub control_stdin: bool,
+    pub push_to_talk_shortcut: String,
+    pub hands_free_shortcut: String,
+    pub cancel_shortcut: String,
+    pub paste_last_shortcut: String,
+    pub personalization_path: Option<PathBuf>,
+    pub session_warning_seconds: u64,
+    pub session_limit_seconds: u64,
 }
 
 impl AppConfig {
     pub fn from_args(args: Args) -> Result<Self> {
         Ok(Self {
-            hotkey_label: "Ctrl+Space",
             sample_rate: 16_000,
             stt_engine: args.stt,
             stt_threads: args.stt_threads.max(1),
@@ -74,6 +102,15 @@ impl AppConfig {
             update_interval: args.update_interval.clamp(0.25, 3.0),
             live_window_seconds: args.live_window_seconds.clamp(2.0, 30.0),
             control_stdin: args.control_stdin,
+            push_to_talk_shortcut: args.push_to_talk_shortcut,
+            hands_free_shortcut: args.hands_free_shortcut,
+            cancel_shortcut: args.cancel_shortcut,
+            paste_last_shortcut: args.paste_last_shortcut,
+            personalization_path: args.personalization_path,
+            session_warning_seconds: args.session_warning_seconds.max(1),
+            session_limit_seconds: args
+                .session_limit_seconds
+                .max(args.session_warning_seconds.max(1) + 1),
         })
     }
 }
@@ -101,5 +138,20 @@ mod tests {
         let args = Args::try_parse_from(["project-parrot", "--ollama-keep-alive", "-1m"])
             .expect("negative durations should be accepted as values");
         assert_eq!(args.ollama_keep_alive, "-1m");
+    }
+
+    #[test]
+    fn long_session_limit_always_follows_warning() {
+        let args = Args::try_parse_from([
+            "project-parrot",
+            "--session-warning-seconds",
+            "20",
+            "--session-limit-seconds",
+            "10",
+        ])
+        .expect("session limits should parse");
+        let config = super::AppConfig::from_args(args).expect("config should build");
+        assert_eq!(config.session_warning_seconds, 20);
+        assert_eq!(config.session_limit_seconds, 21);
     }
 }

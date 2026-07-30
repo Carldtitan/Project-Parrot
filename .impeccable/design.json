@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-30T01:42:26.474Z",
+  "title": "Design System: Parrot",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Command Ink",
+        "canonical": "#20242a",
+        "tonalRamp": ["oklch(15% 0.013 258.4)", "oklch(26% 0.013 258.4)", "oklch(38% 0.013 258.4)", "oklch(50% 0.013 258.4)", "oklch(62% 0.013 258.4)", "oklch(74% 0.013 258.4)", "oklch(86% 0.013 258.4)", "oklch(95% 0.013 258.4)"]
+      },
+      "ink-strong": {
+        "role": "neutral",
+        "displayName": "Terminal Black",
+        "canonical": "#111419",
+        "tonalRamp": ["oklch(15% 0.011 260.7)", "oklch(26% 0.011 260.7)", "oklch(38% 0.011 260.7)", "oklch(50% 0.011 260.7)", "oklch(62% 0.011 260.7)", "oklch(74% 0.011 260.7)", "oklch(86% 0.011 260.7)", "oklch(95% 0.011 260.7)"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate Annotation",
+        "canonical": "#696f79",
+        "tonalRamp": ["oklch(15% 0.017 260.7)", "oklch(26% 0.017 260.7)", "oklch(38% 0.017 260.7)", "oklch(50% 0.017 260.7)", "oklch(62% 0.017 260.7)", "oklch(74% 0.017 260.7)", "oklch(86% 0.017 260.7)", "oklch(95% 0.017 260.7)"]
+      },
+      "muted-strong": {
+        "role": "neutral",
+        "displayName": "Graphite Label",
+        "canonical": "#505660",
+        "tonalRamp": ["oklch(15% 0.018 260.7)", "oklch(26% 0.018 260.7)", "oklch(38% 0.018 260.7)", "oklch(50% 0.018 260.7)", "oklch(62% 0.018 260.7)", "oklch(74% 0.018 260.7)", "oklch(86% 0.018 260.7)", "oklch(95% 0.018 260.7)"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Cool Paper",
+        "canonical": "#f6f7f9",
+        "tonalRamp": ["oklch(15% 0.003 264.5)", "oklch(26% 0.003 264.5)", "oklch(38% 0.003 264.5)", "oklch(50% 0.003 264.5)", "oklch(62% 0.003 264.5)", "oklch(74% 0.003 264.5)", "oklch(86% 0.003 264.5)", "oklch(95% 0.003 264.5)"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Utility White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["oklch(15% 0.000 89.9)", "oklch(26% 0.000 89.9)", "oklch(38% 0.000 89.9)", "oklch(50% 0.000 89.9)", "oklch(62% 0.000 89.9)", "oklch(74% 0.000 89.9)", "oklch(86% 0.000 89.9)", "oklch(95% 0.000 89.9)"]
+      },
+      "surface-subtle": {
+        "role": "neutral",
+        "displayName": "Cool Surface",
+        "canonical": "#eef0f4",
+        "tonalRamp": ["oklch(15% 0.006 264.5)", "oklch(26% 0.006 264.5)", "oklch(38% 0.006 264.5)", "oklch(50% 0.006 264.5)", "oklch(62% 0.006 264.5)", "oklch(74% 0.006 264.5)", "oklch(86% 0.006 264.5)", "oklch(95% 0.006 264.5)"]
+      },
+      "surface-hover": {
+        "role": "neutral",
+        "displayName": "Hover Wash",
+        "canonical": "#e8eaf0",
+        "tonalRamp": ["oklch(15% 0.008 271.3)", "oklch(26% 0.008 271.3)", "oklch(38% 0.008 271.3)", "oklch(50% 0.008 271.3)", "oklch(62% 0.008 271.3)", "oklch(74% 0.008 271.3)", "oklch(86% 0.008 271.3)", "oklch(95% 0.008 271.3)"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#dfe2e8",
+        "tonalRamp": ["oklch(15% 0.009 264.5)", "oklch(26% 0.009 264.5)", "oklch(38% 0.009 264.5)", "oklch(50% 0.009 264.5)", "oklch(62% 0.009 264.5)", "oklch(74% 0.009 264.5)", "oklch(86% 0.009 264.5)", "oklch(95% 0.009 264.5)"]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Keyline",
+        "canonical": "#c9cdd6",
+        "tonalRamp": ["oklch(15% 0.013 266.7)", "oklch(26% 0.013 266.7)", "oklch(38% 0.013 266.7)", "oklch(50% 0.013 266.7)", "oklch(62% 0.013 266.7)", "oklch(74% 0.013 266.7)", "oklch(86% 0.013 266.7)", "oklch(95% 0.013 266.7)"]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Night Rail",
+        "canonical": "#171a20",
+        "tonalRamp": ["oklch(15% 0.013 264.3)", "oklch(26% 0.013 264.3)", "oklch(38% 0.013 264.3)", "oklch(50% 0.013 264.3)", "oklch(62% 0.013 264.3)", "oklch(74% 0.013 264.3)", "oklch(86% 0.013 264.3)", "oklch(95% 0.013 264.3)"]
+      },
+      "sidebar-muted": {
+        "role": "neutral",
+        "displayName": "Rail Slate",
+        "canonical": "#9ba1ad",
+        "tonalRamp": ["oklch(15% 0.019 264.4)", "oklch(26% 0.019 264.4)", "oklch(38% 0.019 264.4)", "oklch(50% 0.019 264.4)", "oklch(62% 0.019 264.4)", "oklch(74% 0.019 264.4)", "oklch(86% 0.019 264.4)", "oklch(95% 0.019 264.4)"]
+      },
+      "sidebar-active": {
+        "role": "neutral",
+        "displayName": "Rail White",
+        "canonical": "#f5f6f8",
+        "tonalRamp": ["oklch(15% 0.003 264.5)", "oklch(26% 0.003 264.5)", "oklch(38% 0.003 264.5)", "oklch(50% 0.003 264.5)", "oklch(62% 0.003 264.5)", "oklch(74% 0.003 264.5)", "oklch(86% 0.003 264.5)", "oklch(95% 0.003 264.5)"]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Command Cobalt",
+        "canonical": "#5865f2",
+        "tonalRamp": ["oklch(15% 0.209 273.9)", "oklch(26% 0.209 273.9)", "oklch(38% 0.209 273.9)", "oklch(50% 0.209 273.9)", "oklch(62% 0.209 273.9)", "oklch(74% 0.209 273.9)", "oklch(86% 0.209 273.9)", "oklch(95% 0.209 273.9)"]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Pressed Cobalt",
+        "canonical": "#4753d8",
+        "tonalRamp": ["oklch(15% 0.201 273.1)", "oklch(26% 0.201 273.1)", "oklch(38% 0.201 273.1)", "oklch(50% 0.201 273.1)", "oklch(62% 0.201 273.1)", "oklch(74% 0.201 273.1)", "oklch(86% 0.201 273.1)", "oklch(95% 0.201 273.1)"]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Cobalt Mist",
+        "canonical": "#e9ebff",
+        "tonalRamp": ["oklch(15% 0.027 281.3)", "oklch(26% 0.027 281.3)", "oklch(38% 0.027 281.3)", "oklch(50% 0.027 281.3)", "oklch(62% 0.027 281.3)", "oklch(74% 0.027 281.3)", "oklch(86% 0.027 281.3)", "oklch(95% 0.027 281.3)"]
+      },
+      "success": {
+        "role": "secondary",
+        "displayName": "Local Green",
+        "canonical": "#16845b",
+        "tonalRamp": ["oklch(15% 0.114 161.8)", "oklch(26% 0.114 161.8)", "oklch(38% 0.114 161.8)", "oklch(50% 0.114 161.8)", "oklch(62% 0.114 161.8)", "oklch(74% 0.114 161.8)", "oklch(86% 0.114 161.8)", "oklch(95% 0.114 161.8)"]
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Working Amber",
+        "canonical": "#b96b18",
+        "tonalRamp": ["oklch(15% 0.133 60.4)", "oklch(26% 0.133 60.4)", "oklch(38% 0.133 60.4)", "oklch(50% 0.133 60.4)", "oklch(62% 0.133 60.4)", "oklch(74% 0.133 60.4)", "oklch(86% 0.133 60.4)", "oklch(95% 0.133 60.4)"]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Recording Red",
+        "canonical": "#c13e43",
+        "tonalRamp": ["oklch(15% 0.167 22.4)", "oklch(26% 0.167 22.4)", "oklch(38% 0.167 22.4)", "oklch(50% 0.167 22.4)", "oklch(62% 0.167 22.4)", "oklch(74% 0.167 22.4)", "oklch(86% 0.167 22.4)", "oklch(95% 0.167 22.4)"]
+      },
+      "danger-soft": {
+        "role": "secondary",
+        "displayName": "Red Wash",
+        "canonical": "#fdebec",
+        "tonalRamp": ["oklch(15% 0.020 13.6)", "oklch(26% 0.020 13.6)", "oklch(38% 0.020 13.6)", "oklch(50% 0.020 13.6)", "oklch(62% 0.020 13.6)", "oklch(74% 0.020 13.6)", "oklch(86% 0.020 13.6)", "oklch(95% 0.020 13.6)"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "View Display",
+        "purpose": "One compact title for each main view."
+      },
+      "transcript": {
+        "displayName": "Live Transcript",
+        "purpose": "Readable live or last-completed dictated text."
+      },
+      "title": {
+        "displayName": "Section Title",
+        "purpose": "Dictation, transcript, settings, and subsection headings."
+      },
+      "body": {
+        "displayName": "Utility Body",
+        "purpose": "Descriptions, history text, and concise supporting copy."
+      },
+      "navigation": {
+        "displayName": "Rail Navigation",
+        "purpose": "Persistent navigation destinations."
+      },
+      "label": {
+        "displayName": "Compact Label",
+        "purpose": "Status, field names, toggles, and metadata."
+      },
+      "button": {
+        "displayName": "Action Label",
+        "purpose": "Primary, secondary, text, and destructive action copy."
+      },
+      "input": {
+        "displayName": "Input Text",
+        "purpose": "Editable and selectable control values."
+      }
+    },
+    "shadows": [
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 3px rgba(88, 101, 242, 0.22)",
+        "purpose": "Keyboard focus and active input focus."
+      },
+      {
+        "name": "raised-action",
+        "value": "0 8px 16px rgba(88, 101, 242, 0.2)",
+        "purpose": "Resting hands-free dictation action."
+      },
+      {
+        "name": "floating-overlay",
+        "value": "0 16px 38px rgba(11, 13, 17, 0.3)",
+        "purpose": "Non-focus-stealing recording overlay."
+      },
+      {
+        "name": "compact-tooltip",
+        "value": "0 8px 20px rgba(0, 0, 0, 0.25)",
+        "purpose": "Collapsed navigation rail labels."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-standard",
+        "value": "160ms ease-out",
+        "purpose": "Color, background, border, and compact movement transitions."
+      },
+      {
+        "name": "state-toggle",
+        "value": "170ms ease-out",
+        "purpose": "Toggle track and thumb state changes."
+      },
+      {
+        "name": "record-breathe",
+        "value": "1.6s ease-in-out infinite",
+        "purpose": "Restrained recording-state shadow pulse."
+      },
+      {
+        "name": "overlay-meter",
+        "value": "620ms ease-in-out infinite alternate",
+        "purpose": "Live three-bar activity in the floating overlay."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "820px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main save or add action inside a view.",
+      "html": "<button class=\"ds-button-primary\">Save and restart</button>",
+      "css": ".ds-button-primary { min-height: 34px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 9px; color: #fff; background: var(--accent); font: 650 12px \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; transition: background 160ms ease-out, border-color 160ms ease-out, transform 120ms ease-out; } .ds-button-primary:hover { border-color: var(--accent-hover); background: var(--accent-hover); } .ds-button-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.22); } .ds-button-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A quiet recovery or system action that should remain available without competing with dictation.",
+      "html": "<button class=\"ds-button-secondary\">Paste previous</button>",
+      "css": ".ds-button-secondary { min-height: 34px; padding: 0 13px; border: 1px solid var(--line-strong); border-radius: 9px; color: var(--ink); background: var(--surface); font: 650 12px \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; transition: background 160ms ease-out, border-color 160ms ease-out, transform 120ms ease-out; } .ds-button-secondary:hover { border-color: #adb2bd; background: var(--surface-subtle); } .ds-button-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.22); } .ds-button-secondary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Hands-Free Action",
+      "kind": "button",
+      "refersTo": "button-record",
+      "description": "The visibly labeled primary control for starting continuous dictation.",
+      "html": "<button class=\"ds-record-action\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"8\" y=\"3\" width=\"8\" height=\"12\" rx=\"4\"></rect><path d=\"M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7\"></path></svg><span>Hands-free</span></button>",
+      "css": ".ds-record-action { display: inline-flex; min-width: 108px; height: 48px; align-items: center; justify-content: center; gap: 8px; padding: 0 13px; border: 1px solid #424bdf; border-radius: 12px; color: #fff; background: var(--accent); box-shadow: 0 8px 16px rgba(88, 101, 242, 0.2); font: 720 11px \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; transition: background 160ms ease-out, transform 160ms ease-out, box-shadow 160ms ease-out; } .ds-record-action svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; } .ds-record-action:hover { background: var(--accent-hover); box-shadow: 0 10px 22px rgba(88, 101, 242, 0.26); transform: translateY(-1px); } .ds-record-action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.22); } .ds-record-action:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "The history search control with a compact leading icon.",
+      "html": "<label class=\"ds-search-field\"><svg viewBox=\"0 0 20 20\" aria-hidden=\"true\"><circle cx=\"8.5\" cy=\"8.5\" r=\"5\"></circle><path d=\"m12.25 12.25 4 4\"></path></svg><input type=\"search\" placeholder=\"Search dictations\"></label>",
+      "css": ".ds-search-field { display: flex; height: 40px; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); } .ds-search-field svg { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; } .ds-search-field input { width: 100%; height: 100%; border: 0; outline: 0; color: var(--ink); background: transparent; font: 400 14px \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; } .ds-search-field:hover { border-color: #b5bac4; } .ds-search-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.22); }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": "navigation-item",
+      "description": "A persistent destination in the Night Rail.",
+      "html": "<button class=\"ds-nav-item\"><svg viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M3.5 8.5 10 3l6.5 5.5v8H12v-5H8v5H3.5v-8Z\"></path></svg><span>Home</span></button>",
+      "css": ".ds-nav-item { display: flex; width: 166px; min-height: 40px; align-items: center; gap: 11px; padding: 0 11px; border: 0; border-radius: 10px; color: var(--sidebar-muted); background: var(--sidebar); font: 600 13px \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; text-align: left; transition: color 160ms ease-out, background 160ms ease-out; } .ds-nav-item svg { width: 18px; height: 18px; fill: currentColor; stroke: none; } .ds-nav-item:hover { color: var(--sidebar-active); background: #282c33; } .ds-nav-item:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.22); } .ds-nav-item:active { color: #fff; background: #34373d; }"
+    },
+    {
+      "name": "Toggle Row",
+      "kind": "custom",
+      "description": "A direct setting with title, explanation, and a right-aligned switch.",
+      "html": "<label class=\"ds-toggle-row\"><span><strong>Remove filler words</strong><small>Clean up “um,” “uh,” and abandoned single-word corrections.</small></span><input type=\"checkbox\" checked><i aria-hidden=\"true\"></i></label>",
+      "css": ".ds-toggle-row { position: relative; display: grid; min-height: 48px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; padding: 6px 0; border-bottom: 1px solid var(--line); color: var(--ink); cursor: pointer; font-family: \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; } .ds-toggle-row > span { display: grid; gap: 3px; } .ds-toggle-row strong { font-size: 11px; font-weight: 650; } .ds-toggle-row small { color: var(--muted); font-size: 10.5px; line-height: 1.45; } .ds-toggle-row input { position: absolute; width: 1px; height: 1px; opacity: 0; } .ds-toggle-row i { position: relative; width: 36px; height: 21px; border-radius: 99px; background: #b8bdc7; transition: background 170ms ease-out; } .ds-toggle-row i::after { position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(29, 33, 40, 0.22); content: \"\"; transition: transform 170ms ease-out; } .ds-toggle-row input:checked + i { background: var(--accent); } .ds-toggle-row input:checked + i::after { transform: translateX(15px); } .ds-toggle-row input:focus-visible + i { box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.22); }"
+    },
+    {
+      "name": "Learned Term",
+      "kind": "chip",
+      "description": "A compact local-vocabulary term with its repetition count.",
+      "html": "<span class=\"ds-learned-term\"><span>Cloudflare</span><small>×3</small></span>",
+      "css": ".ds-learned-term { display: inline-flex; min-height: 29px; align-items: center; gap: 6px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); font: 600 10px \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; } .ds-learned-term small { color: var(--muted); font-size: 10px; }"
+    },
+    {
+      "name": "Recording Overlay",
+      "kind": "custom",
+      "refersTo": "overlay",
+      "description": "The compact non-focus-stealing state surface shown above other applications.",
+      "html": "<div class=\"ds-overlay\"><span class=\"ds-overlay-signal\"><i></i><i></i><i></i></span><span class=\"ds-overlay-copy\"><strong>Listening</strong><small>Speak naturally. Parrot is transcribing locally.</small></span><b>HANDS-FREE</b></div>",
+      "css": ".ds-overlay { display: grid; width: 420px; height: 58px; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, 0.11); border-radius: 12px; color: var(--sidebar-active); background: var(--sidebar); box-shadow: 0 16px 38px rgba(11, 13, 17, 0.3); font-family: \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif; } .ds-overlay-signal { display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; gap: 3px; border-radius: 11px; background: var(--danger); } .ds-overlay-signal i { width: 3px; height: 9px; border-radius: 3px; background: #fff; } .ds-overlay-signal i:nth-child(2) { height: 18px; } .ds-overlay-signal i:nth-child(3) { height: 13px; } .ds-overlay-copy { display: grid; min-width: 0; gap: 3px; } .ds-overlay-copy strong { font-size: 12px; font-weight: 680; } .ds-overlay-copy small { overflow: hidden; color: #aeb4c0; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; } .ds-overlay b { color: #aeb4c0; font-size: 10px; font-weight: 650; white-space: nowrap; } .ds-overlay:hover { border-color: rgba(255, 255, 255, 0.18); } .ds-overlay:focus-within { box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.22), 0 16px 38px rgba(11, 13, 17, 0.3); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Command Rail",
+    "overview": "Parrot is a professional native productivity tool that recedes until the user speaks. Its world combines an ink navigation rail with a cool paper workspace and a single confident cobalt action, creating the feeling of a focused Windows utility rather than a marketing dashboard or decorative AI demo.\n\nThe system is compact, direct, and visibly local. Readiness, live dictation, recovery, personalization, and settings follow one continuous command surface; hierarchy comes from typography, tonal contrast, and precise dividers instead of stacked cards. Rounded geometry is reserved for controls and the small recording overlay.",
+    "keyCharacteristics": [
+      "Ink-and-cool-paper desktop shell with a compact persistent rail.",
+      "Cobalt interaction color used for the current primary action and focus.",
+      "Flat, divider-led content regions with restrained control rounding.",
+      "Direct status language and a persistent local-processing signal.",
+      "Dense but readable Segoe UI typography suited to a Windows utility."
+    ],
+    "rules": [
+      {
+        "name": "The One Cobalt Action Rule",
+        "body": "Use cobalt to identify the current primary action or focus, not to decorate entire sections.",
+        "section": "colors"
+      },
+      {
+        "name": "The State Has Meaning Rule",
+        "body": "Green means ready, amber means working, and red means recording, destructive action, or failure; never use these colors ornamentally.",
+        "section": "colors"
+      },
+      {
+        "name": "The Native Voice Rule",
+        "body": "Use Segoe UI for every user-facing surface; reserve monospace for diagnostics and never use it as an AI-themed accent.",
+        "section": "typography"
+      },
+      {
+        "name": "The Compact Confidence Rule",
+        "body": "Establish hierarchy with weight and spacing before increasing type size; page titles stay compact and transcript text gets the most reading room.",
+        "section": "typography"
+      },
+      {
+        "name": "The Continuous Workspace Rule",
+        "body": "Dictation and transcript regions share the canvas and are separated by rules; do not wrap them in independent cards.",
+        "section": "layout"
+      },
+      {
+        "name": "The Recovery-in-View Rule",
+        "body": "The first viewport keeps readiness, both dictation modes, live text, recent recoverable work, and local usage totals visible together at the normal window size.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-by-Default Rule",
+        "body": "Persistent content stays flat; elevation communicates focus, a primary live action, or a temporary floating layer.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Controls Own the Corners Rule",
+        "body": "Rounded corners belong to interactive controls and the compact overlay, never to stacked content containers.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do keep the common path visible as readiness, push-to-talk, hands-free, live transcript, recovery, and local usage.",
+      "Do use one-pixel dividers and shared alignment to organize persistent content.",
+      "Do keep cobalt concentrated on the primary action, checked state, text action, and focus.",
+      "Do pair every colored status indicator with clear text.",
+      "Do preserve keyboard focus, reduced-motion behavior, and readable secondary copy."
+    ],
+    "donts": [
+      "Don't rebuild the workspace as stacked cards, floating panels, or badge collections.",
+      "Don't use cream, ornamental gradients, decorative waveforms, or oversized AI-style headlines.",
+      "Don't hide hands-free dictation behind an unlabeled icon.",
+      "Don't surface engine, model, thread, or diagnostic controls before common dictation behavior.",
+      "Don't copy another dictation product's branding, assets, wording, colors, or pixel-level layout."
+    ]
+  }
+}

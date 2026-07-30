@@ -7,18 +7,19 @@
       content="default-src 'self'; style-src 'self'; script-src 'self'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Project Parrot status</title>
+    <title>Parrot status</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body class="overlay-page">
-    <main class="overlay-card" aria-live="polite">
-      <div id="overlay-orb" class="overlay-orb">
-        <span></span><span></span><span></span><span></span>
+    <main class="overlay-bar" aria-live="polite">
+      <div id="overlay-signal" class="overlay-signal">
+        <span></span><span></span><span></span>
       </div>
       <div class="overlay-copy">
-        <strong id="overlay-status">Listening…</strong>
-        <p id="overlay-text">Speak naturally, then release Space.</p>
+        <strong id="overlay-status">Listening</strong>
+        <p id="overlay-text">Speak naturally. Parrot is transcribing locally.</p>
       </div>
+      <span id="overlay-mode" class="overlay-mode">PUSH TO TALK</span>
     </main>
     <script src="./overlay.js"></script>
   </body>

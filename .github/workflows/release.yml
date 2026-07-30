@@ -49,6 +49,7 @@ jobs:
           cargo fmt --all -- --check
           cargo test --locked
           npm test
+          npm run test:e2e
           python -m unittest scripts.test_stt_worker
           python -m compileall -q parrot scripts
 

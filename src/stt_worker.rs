@@ -228,6 +228,10 @@ impl SttWorker {
         }
     }
 
+    pub fn cancel_utterance(&self) -> Result<()> {
+        self.send_json(json!({ "type": "cancel" }))
+    }
+
     fn wait_ready(&self) -> Result<()> {
         loop {
             match self.events.recv_timeout(Duration::from_secs(120)) {

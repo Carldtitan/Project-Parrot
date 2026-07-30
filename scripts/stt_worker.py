@@ -337,6 +337,12 @@ def main():
                         }
                     )
 
+                elif message_type == "cancel":
+                    recording = False
+                    buffer = []
+                    last_live_text = ""
+                    last_emitted_text = ""
+
                 elif message_type == "shutdown":
                     break
 

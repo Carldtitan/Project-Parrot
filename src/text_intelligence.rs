@@ -67,7 +67,6 @@ impl TextIntelligence {
 
         let developer_context = self.developer_mode && is_developer_window(active_window);
         let mut text = raw.trim().to_string();
-        text = apply_backtracking(&text);
         if self.cleanup_fillers {
             text = remove_fillers(&text);
         }
@@ -181,37 +180,10 @@ fn contains_developer_command(text: &str) -> bool {
     .any(|phrase| text.contains(phrase))
 }
 
-fn apply_backtracking(text: &str) -> String {
-    let pattern = Regex::new(r"(?i)\b([A-Za-z0-9_.-]+)\s+(?:no|actually)\s+([A-Za-z0-9_.-]+)\b")
-        .expect("backtracking regex is valid");
-    let mut result = text.to_string();
-    for _ in 0..4 {
-        let next = pattern.replace_all(&result, "$2").to_string();
-        if next == result {
-            break;
-        }
-        result = next;
-    }
-    result
-}
-
 fn remove_fillers(text: &str) -> String {
     let fillers =
         Regex::new(r"(?i)\b(?:um+|uh+|erm+|hmm+)\b[\s,]*").expect("filler regex is valid");
-    let without_fillers = fillers.replace_all(text, "").to_string();
-    let mut result = Vec::new();
-    let mut previous = String::new();
-    for word in without_fillers.split_whitespace() {
-        let normalized = word
-            .trim_matches(|ch: char| !ch.is_alphanumeric() && ch != '\'')
-            .to_ascii_lowercase();
-        if !normalized.is_empty() && normalized == previous {
-            continue;
-        }
-        previous = normalized;
-        result.push(word);
-    }
-    result.join(" ")
+    fillers.replace_all(text, "").to_string()
 }
 
 fn apply_spoken_structure(text: &str) -> String {
@@ -329,7 +301,7 @@ fn apply_case_style(value: &str, style: CaseStyle) -> String {
 
 fn format_spoken_lists(text: &str) -> String {
     let numbered = Regex::new(
-        r"(?i)\b(?:number\s+(?:one|two|three|four|five|six|seven|eight|nine|ten)|[1-9]|10)[\s.):,-]+",
+        r"(?i)\b(?:number\s+(?:one|two|three|four|five|six|seven|eight|nine|ten)\b[\s.):,-]*|(?:[1-9]|10)[.)]\s+)",
     )
     .expect("numbered list regex is valid");
     let markers: Vec<_> = numbered.find_iter(text).collect();
@@ -349,7 +321,12 @@ fn format_spoken_lists(text: &str) -> String {
             }
         }
         if items.len() >= 2 {
-            return items.join("\n");
+            let prefix = text[..markers[0].start()].trim();
+            return if prefix.is_empty() {
+                items.join("\n")
+            } else {
+                format!("{prefix}\n\n{}", items.join("\n"))
+            };
         }
     }
 
@@ -368,7 +345,12 @@ fn format_spoken_lists(text: &str) -> String {
             }
         }
         if items.len() >= 2 {
-            return items.join("\n");
+            let prefix = text[..markers[0].start()].trim();
+            return if prefix.is_empty() {
+                items.join("\n")
+            } else {
+                format!("{prefix}\n\n{}", items.join("\n"))
+            };
         }
     }
     text.to_string()
@@ -412,9 +394,27 @@ mod tests {
     }
 
     #[test]
-    fn removes_fillers_and_keeps_the_correction() {
+    fn removes_only_unambiguous_fillers() {
         let text = profile().prepare("um meet meet at two actually three", "");
-        assert_eq!(text.text, "meet at three");
+        assert_eq!(text.text, "meet meet at two actually three");
+    }
+
+    #[test]
+    fn preserves_valid_words_around_actually_and_no() {
+        let text = profile().prepare(
+            "i actually think there are no good options for this release",
+            "",
+        );
+        assert_eq!(
+            text.text,
+            "i actually think there are no good options for this release"
+        );
+    }
+
+    #[test]
+    fn preserves_intentional_repetition() {
+        let text = profile().prepare("this is very very important", "");
+        assert_eq!(text.text, "this is very very important");
     }
 
     #[test]
@@ -424,6 +424,18 @@ mod tests {
             "",
         );
         assert_eq!(text.text, "1. Apples\n2. Bananas\n3. Oranges");
+    }
+
+    #[test]
+    fn keeps_context_before_spoken_list_markers() {
+        let text = profile().prepare(
+            "shopping list number one apples number two bananas number three oranges",
+            "",
+        );
+        assert_eq!(
+            text.text,
+            "shopping list\n\n1. Apples\n2. Bananas\n3. Oranges"
+        );
     }
 
     #[test]

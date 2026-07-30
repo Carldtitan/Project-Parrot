@@ -268,6 +268,19 @@ def live_window(buffer, sample_rate, max_seconds):
     return np.asarray(buffer[-max_samples:], dtype=np.float32), True
 
 
+def next_live_sample_target(
+    current_samples,
+    sample_rate,
+    configured_interval,
+    recognition_latency,
+):
+    # Schedule from audio progress, not wall-clock time. If recognition itself
+    # is slower than the requested cadence, coalesce queued microphone chunks
+    # instead of transcribing every stale message and falling farther behind.
+    interval = max(0.25, configured_interval, recognition_latency * 1.25)
+    return current_samples + max(1, int(sample_rate * interval))
+
+
 def normalized_token(token):
     return re.sub(r"[^\w']+", "", token.casefold())
 
@@ -542,7 +555,7 @@ def main():
 
     buffer = []
     recording = False
-    last_live_at = 0.0
+    next_live_at_samples = 0
     last_live_text = ""
     last_emitted_text = ""
 
@@ -557,7 +570,7 @@ def main():
                 if message_type == "start":
                     buffer = []
                     recording = True
-                    last_live_at = 0.0
+                    next_live_at_samples = int(sample_rate * 0.7)
                     last_live_text = ""
                     last_emitted_text = ""
                     emit({"type": "started"})
@@ -567,11 +580,8 @@ def main():
                         continue
                     sample_rate = int(message.get("sample_rate", sample_rate))
                     buffer.extend(decode_f32le(message["samples"]))
-                    now = time.perf_counter()
-                    enough_audio = len(buffer) >= int(sample_rate * 0.7)
-                    enough_time = now - last_live_at >= args.update_interval
-                    if enough_audio and enough_time:
-                        last_live_at = now
+                    enough_audio = len(buffer) >= next_live_at_samples
+                    if enough_audio:
                         window, is_rolling = live_window(
                             buffer,
                             sample_rate,
@@ -581,6 +591,12 @@ def main():
                         live_started = time.perf_counter()
                         text = transcribe(args.engine, model, window, sample_rate)
                         latency_ms = int((time.perf_counter() - live_started) * 1000)
+                        next_live_at_samples = next_live_sample_target(
+                            len(buffer),
+                            sample_rate,
+                            args.update_interval,
+                            latency_ms / 1000.0,
+                        )
                         if text:
                             last_live_text = (
                                 merge_rolling_transcript(last_live_text, text)

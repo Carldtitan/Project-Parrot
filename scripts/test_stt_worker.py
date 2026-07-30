@@ -9,6 +9,7 @@ from scripts.stt_worker import (
     collapse_live_duplicate,
     merge_rolling_transcript,
     merge_final_segments,
+    next_live_sample_target,
     prepare_final_audio,
     recover_live_tail,
     split_final_audio,
@@ -117,6 +118,20 @@ class MergeRollingTranscriptTests(unittest.TestCase):
                 "this is very very important and I really really mean it"
             ),
             "this is very very important and I really really mean it",
+        )
+
+
+class LiveCadenceTests(unittest.TestCase):
+    def test_schedules_from_new_audio_when_recognition_is_fast(self):
+        self.assertEqual(
+            next_live_sample_target(16_000, 16_000, 1.0, 0.4),
+            32_000,
+        )
+
+    def test_coalesces_audio_when_recognition_is_slower_than_requested_rate(self):
+        self.assertEqual(
+            next_live_sample_target(16_000, 16_000, 1.0, 2.0),
+            56_000,
         )
 
 

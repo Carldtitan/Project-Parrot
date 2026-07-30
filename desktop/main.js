@@ -149,8 +149,8 @@ function createTrayIcon() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 960,
-    height: 720,
+    width: 1080,
+    height: 760,
     minWidth: 760,
     minHeight: 600,
     show: false,

@@ -14,6 +14,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 const readline = require("node:readline");
 
+const {
+  DEFAULT_USER_DATA,
+  buildPersonalizationProfile,
+  deriveStats,
+  recordTranscript,
+  sanitizeUserData,
+} = require("./product-data");
 const { DEFAULT_SETTINGS, sanitizeSettings } = require("./settings");
 
 let mainWindow;
@@ -24,19 +31,38 @@ let forceKillTimer;
 let isQuitting = false;
 let hideOverlayTimer;
 let modelSetupProcess;
+let draftSaveTimer;
 
 const state = {
   backend: "stopped",
   formatter: "warming",
-  message: "Starting Project Parrot…",
+  message: "Starting Parrot…",
   partial: "",
   transcript: "",
+  handsFree: false,
+  recordingStartedAt: null,
   log: [],
   settings: { ...DEFAULT_SETTINGS },
+  userData: { ...DEFAULT_USER_DATA },
 };
+
+function isUiOnly() {
+  return (
+    process.env.PARROT_SKIP_BACKEND === "1" ||
+    process.argv.includes("--ui-only")
+  );
+}
 
 function settingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
+}
+
+function userDataPath() {
+  return path.join(app.getPath("userData"), "dictation-data.json");
+}
+
+function personalizationPath() {
+  return path.join(app.getPath("userData"), "personalization.json");
 }
 
 function loadSettings() {
@@ -49,18 +75,58 @@ function loadSettings() {
   applyLoginSetting();
 }
 
+function loadUserData() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(userDataPath(), "utf8"));
+    state.userData = sanitizeUserData(saved);
+  } catch {
+    state.userData = sanitizeUserData(DEFAULT_USER_DATA);
+  }
+  const latest = state.userData.history[0];
+  state.transcript = latest?.text || state.userData.recoveryDraft || "";
+  state.partial = state.userData.recoveryDraft || state.transcript;
+  writePersonalizationProfile();
+}
+
+function writeJson(target, value) {
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, JSON.stringify(value, null, 2), "utf8");
+}
+
 function saveSettings(nextSettings) {
   state.settings = sanitizeSettings({ ...state.settings, ...nextSettings });
-  fs.mkdirSync(path.dirname(settingsPath()), { recursive: true });
-  fs.writeFileSync(settingsPath(), JSON.stringify(state.settings, null, 2));
+  writeJson(settingsPath(), state.settings);
+  writePersonalizationProfile();
   applyLoginSetting();
   broadcastState();
   rebuildTrayMenu();
   return state.settings;
 }
 
+function saveUserData() {
+  state.userData = sanitizeUserData(state.userData);
+  writeJson(userDataPath(), state.userData);
+  writePersonalizationProfile();
+}
+
+function saveRecoveryDraft(text) {
+  state.userData.recoveryDraft = String(text || "").slice(0, 20000);
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    draftSaveTimer = undefined;
+    saveUserData();
+  }, 750);
+}
+
+function writePersonalizationProfile() {
+  writeJson(
+    personalizationPath(),
+    buildPersonalizationProfile(state.userData, state.settings),
+  );
+}
+
 function applyLoginSetting() {
-  if (!app.isPackaged || process.argv.includes("--ui-only")) return;
+  if (!app.isPackaged || isUiOnly()) return;
   app.setLoginItemSettings({
     openAtLogin: state.settings.launchAtLogin,
     path: process.execPath,
@@ -71,9 +137,9 @@ function applyLoginSetting() {
 function createTrayIcon() {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <rect width="32" height="32" rx="9" fill="#17181a"/>
-      <path d="M9 9h8.2c4.2 0 6.8 2.2 6.8 5.8 0 3.8-2.8 6.1-7.1 6.1h-3V26H9V9Zm4.9 3.9v4.2h2.8c1.6 0 2.5-.7 2.5-2.2 0-1.3-.9-2-2.5-2h-2.8Z" fill="#f6f0df"/>
-      <circle cx="23.5" cy="8.5" r="3.5" fill="#f3a65a"/>
+      <rect width="32" height="32" rx="8" fill="#15181d"/>
+      <path d="M9 8.5h8.6c4.3 0 6.9 2.2 6.9 5.9 0 3.9-2.8 6.2-7.2 6.2h-3.1v4.9H9v-17Zm5.2 4.1v4.1h2.7c1.6 0 2.5-.7 2.5-2.1 0-1.3-.9-2-2.5-2h-2.7Z" fill="#f7f8fb"/>
+      <path d="M23.5 5.5 27 9l-3.5 3.5L20 9l3.5-3.5Z" fill="#5b6cff"/>
     </svg>`;
   const image = nativeImage.createFromDataURL(
     `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`,
@@ -83,14 +149,20 @@ function createTrayIcon() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 620,
-    height: 760,
-    minWidth: 440,
+    width: 960,
+    height: 720,
+    minWidth: 760,
     minHeight: 600,
     show: false,
-    backgroundColor: "#f5f6f2",
+    backgroundColor: "#f6f7f9",
     autoHideMenuBar: true,
-    title: "Project Parrot",
+    title: "Parrot",
+    titleBarStyle: "hidden",
+    titleBarOverlay: {
+      color: "#f6f7f9",
+      symbolColor: "#20242a",
+      height: 44,
+    },
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -116,8 +188,8 @@ function createMainWindow() {
 
 function createOverlayWindow() {
   overlayWindow = new BrowserWindow({
-    width: 460,
-    height: 104,
+    width: 420,
+    height: 66,
     show: false,
     frame: false,
     transparent: true,
@@ -161,21 +233,27 @@ function createTray() {
 }
 
 function menuText(value, maxLength = 72) {
-  const compact = String(value || "").replace(/\s+/g, " ").trim();
+  const compact = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!compact) return "";
   return compact.length > maxLength
     ? `${compact.slice(0, maxLength - 1)}…`
     : compact;
 }
 
+function menuAccelerator(shortcut) {
+  return String(shortcut || "").startsWith("Mouse") ? undefined : shortcut;
+}
+
 function rebuildTrayMenu() {
   if (!tray) return;
   const active = !["stopped", "error"].includes(state.backend);
-  const status = menuText(state.message, 64);
+  const recording = state.backend === "recording";
   const transcript = menuText(state.transcript || state.partial, 64);
   tray.setToolTip(
     menuText(
-      `Project Parrot — ${state.message || state.backend}${
+      `Parrot — ${state.message || state.backend}${
         transcript ? `\nLatest: ${transcript}` : ""
       }`,
       120,
@@ -184,20 +262,40 @@ function rebuildTrayMenu() {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       {
-        label: active ? "Parrot is running" : "Parrot is stopped",
+        label: recording
+          ? state.handsFree
+            ? "Listening hands-free"
+            : "Listening"
+          : active
+            ? "Parrot is ready"
+            : "Parrot is stopped",
         enabled: false,
       },
-      ...(status ? [{ label: status, enabled: false }] : []),
-      ...(transcript
-        ? [{ label: `Latest: ${transcript}`, enabled: false }]
-        : []),
+      ...(transcript ? [{ label: `Latest: ${transcript}`, enabled: false }] : []),
       { type: "separator" },
       { label: "Open Parrot", click: showMainWindow },
       {
-        label: active ? "Restart dictation" : "Start dictation",
-        click: restartBackend,
+        label: state.handsFree ? "Finish hands-free dictation" : "Start hands-free",
+        accelerator: menuAccelerator(state.settings.handsFreeShortcut),
+        click: () => sendBackendControl({ type: "toggle-hands-free" }),
+      },
+      {
+        label: "Cancel current dictation",
+        accelerator: menuAccelerator(state.settings.cancelShortcut),
+        enabled: recording,
+        click: () => sendBackendControl({ type: "cancel" }),
+      },
+      {
+        label: "Paste previous dictation",
+        accelerator: menuAccelerator(state.settings.pasteLastShortcut),
+        enabled: Boolean(state.transcript),
+        click: () => sendBackendControl({ type: "paste-last" }),
       },
       { type: "separator" },
+      {
+        label: active ? "Restart dictation engine" : "Start dictation engine",
+        click: restartBackend,
+      },
       {
         label: "Launch at sign in",
         type: "checkbox",
@@ -205,7 +303,7 @@ function rebuildTrayMenu() {
         click: (item) => saveSettings({ launchAtLogin: item.checked }),
       },
       { type: "separator" },
-      { label: "Quit Project Parrot", click: quitApplication },
+      { label: "Quit Parrot", click: quitApplication },
     ]),
   );
 }
@@ -217,10 +315,6 @@ function showMainWindow() {
   mainWindow.focus();
 }
 
-function hideMainToActivity() {
-  mainWindow?.hide();
-}
-
 function backendRoot() {
   return app.isPackaged
     ? path.join(process.resourcesPath, "backend")
@@ -230,7 +324,12 @@ function backendRoot() {
 function backendCommand() {
   const root = backendRoot();
   const executable = path.join(root, "project-parrot.exe");
-  const releaseExecutable = path.join(root, "target", "release", "project-parrot.exe");
+  const releaseExecutable = path.join(
+    root,
+    "target",
+    "release",
+    "project-parrot.exe",
+  );
 
   if (app.isPackaged) return { command: executable, prefixArgs: [] };
   if (fs.existsSync(releaseExecutable)) {
@@ -248,16 +347,16 @@ function effectiveThreads() {
 }
 
 function startBackend() {
-  const uiOnly =
-    process.env.PARROT_SKIP_BACKEND === "1" || process.argv.includes("--ui-only");
-  if (backendProcess || uiOnly) {
-    if (uiOnly) {
-      updateState("ready", "UI preview mode — backend is disabled.");
+  if (backendProcess || isUiOnly()) {
+    if (isUiOnly()) {
+      updateState("ready", "Preview mode — dictation engine is not running.");
     }
     return;
   }
 
+  writePersonalizationProfile();
   const { command, prefixArgs } = backendCommand();
+  const sessionLimitSeconds = state.settings.longSessionMinutes * 60;
   const args = [
     ...prefixArgs,
     "--stt",
@@ -271,11 +370,25 @@ function startBackend() {
     String(state.settings.updateInterval),
     "--live-window-seconds",
     String(state.settings.liveWindowSeconds),
+    "--push-to-talk-shortcut",
+    state.settings.pushToTalkShortcut,
+    "--hands-free-shortcut",
+    state.settings.handsFreeShortcut,
+    "--cancel-shortcut",
+    state.settings.cancelShortcut,
+    "--paste-last-shortcut",
+    state.settings.pasteLastShortcut,
+    "--personalization-path",
+    personalizationPath(),
+    "--session-warning-seconds",
+    String(Math.max(30, sessionLimitSeconds - 60)),
+    "--session-limit-seconds",
+    String(sessionLimitSeconds),
     "--control-stdin",
   ];
 
   state.formatter = "warming";
-  addLog(`Starting ${state.settings.sttEngine} with ${state.settings.ollamaModel}.`);
+  addLog(`Starting ${state.settings.sttEngine} locally.`);
   updateState("starting", "Loading the local speech model…");
 
   try {
@@ -309,15 +422,60 @@ function startBackend() {
     stderr.close();
     if (backendProcess !== child) return;
     backendProcess = undefined;
+    state.handsFree = false;
+    state.recordingStartedAt = null;
     if (!isQuitting && state.backend !== "stopping") {
       updateState(
         "error",
-        `Dictation engine stopped${code !== null ? ` (code ${code})` : signal ? ` (${signal})` : ""}.`,
+        `Dictation engine stopped${
+          code !== null ? ` (code ${code})` : signal ? ` (${signal})` : ""
+        }.`,
       );
     } else {
       updateState("stopped", "Dictation is stopped.");
     }
   });
+}
+
+function sendBackendControl(message) {
+  if (isUiOnly()) {
+    if (message.type === "toggle-hands-free") {
+      state.handsFree = !state.handsFree;
+      state.recordingStartedAt = state.handsFree ? Date.now() : null;
+      if (state.handsFree) state.partial = "";
+      updateState(
+        state.handsFree ? "recording" : "ready",
+        state.handsFree
+          ? "Hands-free preview is active."
+          : "Hands-free preview finished.",
+      );
+      if (state.handsFree) showOverlay();
+      else scheduleOverlayHide();
+    } else if (message.type === "cancel") {
+      state.handsFree = false;
+      state.recordingStartedAt = null;
+      state.partial = "";
+      updateState("ready", "Cancelled. Nothing was pasted.");
+      scheduleOverlayHide();
+    } else if (message.type === "paste" && message.text) {
+      clipboard.writeText(String(message.text));
+      state.transcript = String(message.text);
+      broadcastState();
+    }
+    return { ok: true, preview: true };
+  }
+  if (!backendProcess?.stdin?.writable) {
+    return { ok: false, message: "The dictation engine is not ready." };
+  }
+  backendProcess.stdin.write(`${JSON.stringify(message)}\n`);
+  return { ok: true };
+}
+
+function sendAfterHiding(message) {
+  if (isUiOnly()) return sendBackendControl(message);
+  mainWindow?.hide();
+  setTimeout(() => sendBackendControl(message), 180);
+  return { ok: true };
 }
 
 function stopBackend() {
@@ -336,7 +494,7 @@ function stopBackend() {
     });
 
     try {
-      child.stdin.write("quit\n");
+      child.stdin.write(`${JSON.stringify({ type: "quit" })}\n`);
       child.stdin.end();
     } catch {
       child.kill();
@@ -344,11 +502,10 @@ function stopBackend() {
 
     forceKillTimer = setTimeout(() => {
       if (backendProcess === child && child.pid) {
-        const killer = spawn(
-          "taskkill",
-          ["/PID", String(child.pid), "/T", "/F"],
-          { windowsHide: true, stdio: "ignore" },
-        );
+        const killer = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+          windowsHide: true,
+          stdio: "ignore",
+        });
         killer.once("exit", resolve);
       } else {
         resolve();
@@ -372,7 +529,7 @@ function handleBackendLine(line) {
       handleBackendEvent(event);
       return;
     } catch {
-      // Preserve malformed structured events in the diagnostic log.
+      // Keep malformed structured events in diagnostics.
     }
   }
   addLog(trimmed);
@@ -385,12 +542,18 @@ function handleBackendEvent(event) {
     if (message) {
       addLog(message, event.state === "unavailable" ? "error" : "info", false);
     }
-    if (state.backend === "ready" && message) state.message = message;
     broadcastState();
+    return;
+  }
+  if (event.type === "mode") {
+    state.handsFree = Boolean(event.handsFree);
+    broadcastState();
+    rebuildTrayMenu();
     return;
   }
   if (event.type === "partial") {
     state.partial = String(event.text || "");
+    saveRecoveryDraft(state.partial);
     showOverlay();
     broadcastState();
     rebuildTrayMenu();
@@ -399,13 +562,32 @@ function handleBackendEvent(event) {
   if (event.type === "final") {
     state.transcript = String(event.text || "");
     state.partial = state.transcript;
+    state.recordingStartedAt = null;
+    state.handsFree = false;
+    state.userData = recordTranscript(state.userData, {
+      text: state.transcript,
+      durationSeconds: Number(event.durationSeconds) || 0,
+      source: event.developerContext ? "developer" : "dictation",
+    });
+    saveUserData();
     broadcastState();
     rebuildTrayMenu();
     return;
   }
+  if (event.type === "repaste") {
+    state.transcript = String(event.text || state.transcript);
+    state.partial = state.transcript;
+    broadcastState();
+    return;
+  }
   if (event.type !== "status") return;
 
-  state.partial = event.state === "recording" ? "" : state.partial;
+  if (event.state === "recording") {
+    state.partial = "";
+    state.recordingStartedAt ||= Date.now();
+  } else if (["ready", "error", "stopped"].includes(event.state)) {
+    state.recordingStartedAt = null;
+  }
   updateState(event.state || "starting", event.message || "");
   if (["recording", "processing", "formatting", "pasting"].includes(event.state)) {
     showOverlay();
@@ -451,10 +633,20 @@ function publicState() {
     message: state.message,
     partial: state.partial,
     transcript: state.transcript,
+    handsFree: state.handsFree,
+    recordingStartedAt: state.recordingStartedAt,
     log: state.log,
     settings: state.settings,
+    history: state.userData.history,
+    dictionary: state.userData.dictionary,
+    snippets: state.userData.snippets,
+    learnedWords: state.userData.learnedWords,
+    recoveryDraft: state.userData.recoveryDraft,
+    stats: deriveStats(state.userData),
     packaged: app.isPackaged,
     setupRunning: Boolean(modelSetupProcess),
+    previewMode: isUiOnly(),
+    sampleData: process.argv.includes("--e2e"),
   };
 }
 
@@ -477,7 +669,10 @@ function hideOverlay() {
 
 function runModelSetup() {
   if (modelSetupProcess) {
-    return Promise.resolve({ ok: false, message: "Model setup is already running." });
+    return Promise.resolve({
+      ok: false,
+      message: "Model setup is already running.",
+    });
   }
 
   return new Promise((resolve) => {
@@ -525,9 +720,42 @@ function runModelSetup() {
   });
 }
 
+function updatePersonalization(next) {
+  state.userData = sanitizeUserData({
+    ...state.userData,
+    dictionary: next?.dictionary,
+    snippets: next?.snippets,
+  });
+  saveUserData();
+  broadcastState();
+  return publicState();
+}
+
+function deleteHistoryItem(id) {
+  state.userData.history = state.userData.history.filter(
+    (entry) => entry.id !== String(id),
+  );
+  saveUserData();
+  broadcastState();
+  return publicState();
+}
+
+function clearHistory() {
+  state.userData.history = [];
+  state.userData.recoveryDraft = "";
+  state.transcript = "";
+  state.partial = "";
+  saveUserData();
+  broadcastState();
+  rebuildTrayMenu();
+  return publicState();
+}
+
 function quitApplication() {
   if (isQuitting) return;
   isQuitting = true;
+  clearTimeout(draftSaveTimer);
+  if (state.userData.recoveryDraft) saveUserData();
   stopBackend().finally(() => app.quit());
 }
 
@@ -538,11 +766,30 @@ function registerIpc() {
     await restartBackend();
     return publicState();
   });
+  ipcMain.handle("parrot:save-personalization", async (_event, data) => {
+    updatePersonalization(data);
+    await restartBackend();
+    return publicState();
+  });
   ipcMain.handle("parrot:restart", async () => {
     await restartBackend();
     return publicState();
   });
   ipcMain.handle("parrot:setup-model", () => runModelSetup());
+  ipcMain.handle("parrot:toggle-hands-free", () =>
+    sendAfterHiding({ type: "toggle-hands-free" }),
+  );
+  ipcMain.handle("parrot:cancel", () => sendBackendControl({ type: "cancel" }));
+  ipcMain.handle("parrot:paste-last", () =>
+    sendAfterHiding({ type: "paste-last" }),
+  );
+  ipcMain.handle("parrot:paste-text", (_event, text) =>
+    sendAfterHiding({ type: "paste", text: String(text || "") }),
+  );
+  ipcMain.handle("parrot:delete-history", (_event, id) =>
+    deleteHistoryItem(id),
+  );
+  ipcMain.handle("parrot:clear-history", () => clearHistory());
   ipcMain.handle("parrot:copy-transcript", (_event, text) => {
     clipboard.writeText(String(text || ""));
     return { ok: true };
@@ -550,8 +797,19 @@ function registerIpc() {
   ipcMain.handle("parrot:open-ollama", () =>
     shell.openExternal("https://ollama.com/download/windows"),
   );
-  ipcMain.handle("parrot:hide", () => hideMainToActivity());
+  ipcMain.handle("parrot:hide", () => mainWindow?.hide());
   ipcMain.handle("parrot:quit", () => quitApplication());
+  if (process.argv.includes("--e2e")) {
+    ipcMain.handle("parrot:e2e-seed", (_event, data) => {
+      state.userData = sanitizeUserData(data);
+      state.transcript = state.userData.history[0]?.text || "";
+      state.partial = state.transcript;
+      saveUserData();
+      broadcastState();
+      rebuildTrayMenu();
+      return publicState();
+    });
+  }
 }
 
 const hasLock = app.requestSingleInstanceLock();
@@ -561,6 +819,7 @@ if (!hasLock) {
   app.on("second-instance", showMainWindow);
   app.whenReady().then(() => {
     loadSettings();
+    loadUserData();
     registerIpc();
     createTray();
     createMainWindow();
@@ -571,7 +830,7 @@ if (!hasLock) {
 
 app.on("activate", showMainWindow);
 app.on("window-all-closed", () => {
-  // Tray lifetime owns the app. Closing the window intentionally keeps it alive.
+  // The tray owns the application lifetime.
 });
 app.on("before-quit", () => {
   isQuitting = true;

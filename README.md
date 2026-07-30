@@ -2,11 +2,12 @@
 
 Private, local-first voice typing for Windows.
 
-[**Download the latest Parrot.exe**](https://github.com/Carldtitan/Project-Parrot/releases/download/latest/Parrot.exe)
+[**Download the latest Parrot.exe**](https://github.com/Carldtitan/Project-Parrot/releases/latest/download/Parrot.exe)
 
-Hold `Ctrl+Space`, speak naturally, and release `Space`. Parrot shows the
-transcript while you talk, finishes the full utterance locally, and pastes it
-into the app you were using.
+Hold `Ctrl+Space`, speak naturally, and release. Parrot shows the transcript
+while you talk, cleans up the full utterance locally, and pastes it into the
+app you were using. For longer thoughts, press `Ctrl+Alt+Space` to start or
+finish hands-free dictation.
 
 ![Parrot transcribing locally](docs/parrot-ui.png)
 
@@ -21,7 +22,14 @@ The product work includes:
 
 - rolling live transcription that preserves earlier words during long speech;
 - full-utterance recognition before the final paste;
-- global push-to-talk and clipboard-safe insertion;
+- global push-to-talk and hands-free dictation;
+- configurable keyboard and side-mouse shortcuts;
+- instant cancel plus recover, copy, or re-paste from local history;
+- deterministic filler removal, spoken punctuation, corrections, and lists;
+- app-aware formatting for IDEs, filenames, syntax, and case commands;
+- a personal dictionary, local vocabulary learning, and reusable snippets;
+- private on-device history, usage totals, and long-session safeguards;
+- clipboard-safe insertion into the previously focused app;
 - a non-focus-stealing overlay and persistent Windows tray process;
 - an optional local formatter with a guarded raw-transcript fallback;
 - benchmark-driven model selection; and
@@ -32,10 +40,20 @@ The product work includes:
 Requirements: 64-bit Windows 10 or 11. A GPU is not required.
 
 1. Download and run
-   [Parrot.exe](https://github.com/Carldtitan/Project-Parrot/releases/download/latest/Parrot.exe).
+   [Parrot.exe](https://github.com/Carldtitan/Project-Parrot/releases/latest/download/Parrot.exe).
 2. Let Parrot download its local speech model on the first launch.
 3. Focus a text field in any app.
-4. Hold `Ctrl+Space`, speak, and release `Space`.
+4. Hold `Ctrl+Space`, speak, and release.
+
+Default system-wide controls:
+
+- `Ctrl+Space`: hold to talk.
+- `Ctrl+Alt+Space`: start or finish hands-free dictation.
+- `Ctrl+Alt+Escape`: cancel the current dictation.
+- `Ctrl+Alt+V`: paste the previous result again.
+
+All four controls can be changed in Settings, including to supported side-mouse
+buttons. Dictionary entries and snippets are managed under Personalize.
 
 Parrot keeps running in the notification area when its window is closed.
 Clicking the tray icon opens it again.
@@ -97,6 +115,7 @@ Run the verification suite:
 cargo fmt --all -- --check
 cargo test --locked
 npm test
+npm run test:e2e
 python -m unittest scripts.test_stt_worker
 python -m compileall -q parrot scripts
 ```

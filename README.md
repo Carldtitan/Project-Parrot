@@ -1,8 +1,10 @@
+<img src="desktop/assets/brand/parrot-mark.svg" width="72" alt="Parrot logo" />
+
 # Parrot
 
 Private, local-first voice typing for Windows.
 
-[**Download the latest Parrot.exe**](https://github.com/Carldtitan/Project-Parrot/releases/latest/download/Parrot.exe)
+[**Download Parrot for Windows**](https://github.com/Carldtitan/Project-Parrot/releases/latest/download/Parrot.exe)
 
 Hold `Ctrl+Space`, speak naturally, and release. Parrot shows the transcript
 while you talk, cleans up the full utterance locally, and pastes it into the

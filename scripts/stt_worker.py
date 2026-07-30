@@ -14,9 +14,10 @@ import numpy as np
 PARAKEET_MODEL_ID = "nemo-parakeet-tdt-0.6b-v3"
 WHISPER_FALLBACK_MODEL_ID = "small.en"
 FINAL_TRAILING_PADDING_SECONDS = 0.35
-FINAL_CHUNK_SECONDS = 18.0
-FINAL_CHUNK_OVERLAP_SECONDS = 1.5
-FINAL_SPLIT_SEARCH_SECONDS = 2.0
+FINAL_DIRECT_PASS_SECONDS = 90.0
+FINAL_CHUNK_SECONDS = 60.0
+FINAL_CHUNK_OVERLAP_SECONDS = 5.0
+FINAL_SPLIT_SEARCH_SECONDS = 5.0
 
 
 def emit(payload):
@@ -78,7 +79,10 @@ def is_probably_silence(audio):
         return True
     peak = float(np.max(np.abs(audio)))
     rms = float(np.sqrt(np.mean(audio * audio)))
-    return peak < 0.006 or rms < 0.0015
+    # Quiet speech can have low average energy while still containing clear
+    # phoneme peaks. Requiring both values to be tiny avoids rejecting soft
+    # voices solely because their RMS is below a conservative VAD threshold.
+    return peak < 0.004 and rms < 0.001
 
 
 def trim_silence(audio, sample_rate):
@@ -116,19 +120,14 @@ def trim_silence(audio, sample_rate):
 
 def prepare_final_audio(audio, sample_rate):
     source = np.asarray(audio, dtype=np.float32)
-    trimmed = trim_silence(source, sample_rate)
+    if is_probably_silence(source):
+        return source
 
-    # Some laptop microphones produce speech below the conservative trimming
-    # threshold even though the recognizer can transcribe the untrimmed signal.
-    # Never discard an otherwise useful utterance solely because trimming found
-    # too little voiced audio.
-    minimum_useful_samples = int(sample_rate * 0.25)
-    if source.size >= minimum_useful_samples and trimmed.size < minimum_useful_samples:
-        trimmed = source
-
-    normalized = normalize_audio(trimmed)
-    if is_probably_silence(normalized):
-        return normalized
+    # The final pass is deliberately lossless. Trimming based on an energy
+    # threshold can remove a softly spoken first or last phrase even when the
+    # middle of the utterance is loud. Parakeet handles surrounding silence,
+    # so preserve every captured sample and only append a clean end boundary.
+    normalized = normalize_audio(source)
 
     # Transducer models make a more stable final-token decision when speech is
     # followed by a clean non-speech boundary. This also prevents the last
@@ -216,6 +215,15 @@ def split_final_audio(
 
 
 def transcribe_final(engine, model, audio, sample_rate):
+    # Parakeet is more accurate when it can use the complete discourse context
+    # for ordinary dictations. The exact one-minute quality fixture reaches
+    # near-perfect coverage as a single pass but loses a phrase when divided at
+    # an unlucky acoustic boundary. Reserve segmentation for genuinely long
+    # recordings that approach the model's practical context limit.
+    if len(audio) <= int(sample_rate * FINAL_DIRECT_PASS_SECONDS):
+        prepared = normalize_audio(audio)
+        return transcribe(engine, model, prepared, sample_rate).strip(), 1
+
     chunks = split_final_audio(audio, sample_rate)
     merged = ""
     segment_padding = np.zeros(
@@ -228,7 +236,7 @@ def transcribe_final(engine, model, audio, sample_rate):
             prepared = np.concatenate((prepared, segment_padding))
         segment = transcribe(engine, model, prepared, sample_rate)
         if segment:
-            merged = merge_rolling_transcript(merged, segment)
+            merged = merge_final_segments(merged, segment)
     return merged.strip(), len(chunks)
 
 
@@ -291,6 +299,79 @@ def merge_rolling_transcript(previous, current):
     # A one-word boundary is still useful for short phrases.
     if previous_keys[-1] == current_keys[0]:
         return " ".join(previous_words[:-1] + current_words)
+
+    return f"{previous} {current}".strip()
+
+
+def merge_final_segments(previous, current):
+    """Join final overlapping chunks without discarding unmatched old words."""
+    previous = str(previous or "").strip()
+    current = str(current or "").strip()
+    if not previous:
+        return current
+    if not current:
+        return previous
+
+    previous_words = previous.split()
+    current_words = current.split()
+    previous_keys = [normalized_token(word) for word in previous_words]
+    current_keys = [normalized_token(word) for word in current_words]
+
+    max_overlap = min(16, len(previous_keys), len(current_keys))
+    for overlap in range(max_overlap, 0, -1):
+        if previous_keys[-overlap:] == current_keys[:overlap]:
+            return " ".join(previous_words[:-overlap] + current_words)
+
+    # Parakeet can revise one word inside the overlap. Find a strong contiguous
+    # boundary anchor, collapse that shared phrase to the newer spelling, and
+    # retain both unmatched tails. Deliberately ignore isolated later matches
+    # such as "his" or "the"; treating them as anchors can reorder text.
+    boundary_words = 24
+    previous_tail_start = max(0, len(previous_keys) - boundary_words)
+    current_head_end = min(len(current_keys), boundary_words)
+    previous_tail = previous_keys[previous_tail_start:]
+    current_head = current_keys[:current_head_end]
+
+    def equivalent(left, right):
+        if left == right:
+            return True
+        if min(len(left), len(right)) < 4:
+            return False
+        return SequenceMatcher(None, left, right, autojunk=False).ratio() >= 0.78
+
+    anchors = []
+    for previous_index in range(len(previous_tail)):
+        for current_index in range(min(9, len(current_head))):
+            length = 0
+            while (
+                previous_index + length < len(previous_tail)
+                and current_index + length < len(current_head)
+                and equivalent(
+                    previous_tail[previous_index + length],
+                    current_head[current_index + length],
+                )
+            ):
+                length += 1
+            if (
+                length >= 2
+                and len(previous_tail) - previous_index - length <= 8
+            ):
+                anchors.append((length, previous_index, current_index))
+
+    if anchors:
+        length, previous_index, current_index = max(
+            anchors,
+            key=lambda anchor: (anchor[0], anchor[1], -anchor[2]),
+        )
+        merged = previous_words[: previous_tail_start + previous_index]
+        merged.extend(
+            current_words[current_index : current_index + length]
+        )
+        merged.extend(
+            previous_words[previous_tail_start + previous_index + length :]
+        )
+        merged.extend(current_words[current_index + length :])
+        return " ".join(merged)
 
     return f"{previous} {current}".strip()
 

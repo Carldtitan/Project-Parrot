@@ -27,7 +27,10 @@ The product work includes:
 - global push-to-talk and hands-free dictation;
 - configurable keyboard and side-mouse shortcuts;
 - instant cancel plus recover, copy, or re-paste from local history;
-- deterministic filler removal, spoken punctuation, corrections, and lists;
+- automatic semantic formatting for steps and lists without spoken numbering;
+- high-confidence local repair for obvious recognition slips;
+- protected end-of-utterance capture and live-tail recovery for final words;
+- deterministic filler removal, spoken punctuation, and explicit corrections;
 - app-aware formatting for IDEs, filenames, syntax, and case commands;
 - a personal dictionary, local vocabulary learning, and reusable snippets;
 - private on-device history, usage totals, and long-session safeguards;

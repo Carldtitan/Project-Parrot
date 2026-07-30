@@ -20,3 +20,10 @@ test("app icon wraps the canonical mark deterministically", () => {
   assert.match(first, /rx="58"/);
   assert.match(first, /viewBox="0 0 64 64"/);
 });
+
+test("tray icon uses optical geometry at small sizes", () => {
+  const icon = createAppIconSvg(16, { optical: true });
+  assert.match(icon, /width="16" height="16"/);
+  assert.match(icon, /x="0" y="0" width="16" height="16"/);
+  assert.match(icon, /viewBox="13 2 48 62"/);
+});

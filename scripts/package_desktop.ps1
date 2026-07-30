@@ -29,58 +29,6 @@ $Python = if ($UseSystemPython) {
     Join-Path $Root ".venv\Scripts\python.exe"
 }
 
-function New-ParrotIcon {
-    param([Parameter(Mandatory = $true)][string]$Path)
-
-    Add-Type -AssemblyName System.Drawing
-    $Bitmap = [Drawing.Bitmap]::new(256, 256)
-    $Graphics = [Drawing.Graphics]::FromImage($Bitmap)
-    $Graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $Graphics.Clear([Drawing.Color]::FromArgb(28, 23, 33))
-
-    $FontCollection = [Drawing.Text.PrivateFontCollection]::new()
-    $FontCollection.AddFontFile(
-        (Join-Path $Root "desktop\assets\fonts\SchibstedGrotesk-Variable.ttf")
-    )
-    $Font = [Drawing.Font]::new(
-        $FontCollection.Families[0],
-        138,
-        [Drawing.FontStyle]::Bold,
-        [Drawing.GraphicsUnit]::Pixel
-    )
-    $TextBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(251, 249, 252))
-    $AccentBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(217, 255, 87))
-    $Format = [Drawing.StringFormat]::new()
-    $Format.Alignment = [Drawing.StringAlignment]::Center
-    $Format.LineAlignment = [Drawing.StringAlignment]::Center
-
-    $Graphics.DrawString(
-        "P",
-        $Font,
-        $TextBrush,
-        [Drawing.RectangleF]::new(0, -5, 256, 256),
-        $Format
-    )
-    $Graphics.FillPolygon(
-        $AccentBrush,
-        [Drawing.Point[]]@(
-            [Drawing.Point]::new(210, 20),
-            [Drawing.Point]::new(238, 48),
-            [Drawing.Point]::new(210, 76),
-            [Drawing.Point]::new(182, 48)
-        )
-    )
-    $Bitmap.Save($Path, [Drawing.Imaging.ImageFormat]::Png)
-
-    $Format.Dispose()
-    $AccentBrush.Dispose()
-    $TextBrush.Dispose()
-    $Font.Dispose()
-    $FontCollection.Dispose()
-    $Graphics.Dispose()
-    $Bitmap.Dispose()
-}
-
 Write-Host "1/4 Building the Rust dictation engine..."
 cargo build --release
 if ($LASTEXITCODE -ne 0) {
@@ -167,7 +115,13 @@ Write-Host "4/4 Creating the Windows installer..."
 if (-not (Test-Path $BuildRoot)) {
     New-Item -ItemType Directory -Path $BuildRoot | Out-Null
 }
-New-ParrotIcon -Path $IconPath
+node `
+    scripts\render_brand_icon.cjs `
+    $IconPath `
+    256
+if ($LASTEXITCODE -ne 0) {
+    throw "Parrot icon rendering failed."
+}
 npm run dist
 if ($LASTEXITCODE -ne 0) {
     throw "Electron packaging failed."

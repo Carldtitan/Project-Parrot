@@ -38,9 +38,15 @@ async function main() {
   const userDataDirectory = fs.mkdtempSync(
     path.join(os.tmpdir(), "parrot-brand-review-"),
   );
+  const packagedExecutable = process.env.PARROT_EXECUTABLE;
   const app = await electron.launch({
-    executablePath: require("electron"),
-    args: [".", "--ui-only", "--e2e", `--user-data-dir=${userDataDirectory}`],
+    executablePath: packagedExecutable || require("electron"),
+    args: [
+      ...(packagedExecutable ? [] : ["."]),
+      "--ui-only",
+      "--e2e",
+      `--user-data-dir=${userDataDirectory}`,
+    ],
     cwd: projectRoot,
   });
 

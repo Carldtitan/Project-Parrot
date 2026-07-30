@@ -14,7 +14,7 @@
     "check": "node --check desktop/main.js && node --check desktop/preload.js && node --check desktop/renderer.js && node --check desktop/overlay.js && node --check desktop/settings.js",
     "test": "npm run check && node --test desktop/*.test.js",
     "pack": "electron-builder --dir --win",
-    "dist": "electron-builder --win nsis"
+    "dist": "electron-builder --win nsis --publish never"
   },
   "devDependencies": {
     "electron": "^43.2.0",

@@ -13,6 +13,7 @@ import numpy as np
 
 PARAKEET_MODEL_ID = "nemo-parakeet-tdt-0.6b-v3"
 WHISPER_FALLBACK_MODEL_ID = "small.en"
+FINAL_TRAILING_PADDING_SECONDS = 0.35
 
 
 def emit(payload):
@@ -103,9 +104,10 @@ def trim_silence(audio, sample_rate):
     if not voiced:
         return np.asarray([], dtype=np.float32)
 
-    pad = int(sample_rate * 0.12)
-    first = max(0, starts[voiced[0]] - pad)
-    last = min(audio.size, starts[voiced[-1]] + frame + pad)
+    leading_pad = int(sample_rate * 0.12)
+    trailing_pad = int(sample_rate * 0.24)
+    first = max(0, starts[voiced[0]] - leading_pad)
+    last = min(audio.size, starts[voiced[-1]] + frame + trailing_pad)
     return audio[first:last]
 
 
@@ -121,7 +123,18 @@ def prepare_final_audio(audio, sample_rate):
     if source.size >= minimum_useful_samples and trimmed.size < minimum_useful_samples:
         trimmed = source
 
-    return normalize_audio(trimmed)
+    normalized = normalize_audio(trimmed)
+    if is_probably_silence(normalized):
+        return normalized
+
+    # Transducer models make a more stable final-token decision when speech is
+    # followed by a clean non-speech boundary. This also prevents the last
+    # phoneme from being treated as a clipped, unfinished word.
+    trailing_silence = np.zeros(
+        int(sample_rate * FINAL_TRAILING_PADDING_SECONDS),
+        dtype=np.float32,
+    )
+    return np.concatenate((normalized, trailing_silence))
 
 
 def transcribe_parakeet(model, audio, sample_rate):
@@ -215,6 +228,41 @@ def merge_rolling_transcript(previous, current):
         return " ".join(previous_words[:-1] + current_words)
 
     return f"{previous} {current}".strip()
+
+
+def recover_live_tail(final_text, live_text):
+    """Restore words omitted only from the end of the full-utterance pass."""
+    final_text = str(final_text or "").strip()
+    live_text = str(live_text or "").strip()
+    if not final_text:
+        return live_text
+    if not live_text:
+        return final_text
+
+    final_words = final_text.split()
+    live_words = live_text.split()
+    final_keys = [normalized_token(word) for word in final_words]
+    live_keys = [normalized_token(word) for word in live_words]
+    similarity = SequenceMatcher(None, final_keys, live_keys, autojunk=False).ratio()
+
+    max_anchor = min(10, len(final_keys), len(live_keys))
+    for anchor_size in range(max_anchor, 0, -1):
+        anchor = final_keys[-anchor_size:]
+        for live_start in range(len(live_keys) - anchor_size, -1, -1):
+            if live_keys[live_start : live_start + anchor_size] != anchor:
+                continue
+            tail = live_words[live_start + anchor_size :]
+            if not tail:
+                continue
+            if anchor_size < 2 and similarity < 0.70:
+                continue
+            if len(tail) > max(12, len(final_words) // 2):
+                continue
+
+            base = re.sub(r"[.!?,;:]+$", "", final_text).rstrip()
+            return f"{base} {' '.join(tail)}".strip()
+
+    return final_text
 
 
 def main():
@@ -326,14 +374,20 @@ def main():
                     text = transcribe(args.engine, model, audio, sample_rate)
                     latency_ms = int((time.perf_counter() - final_started) * 1000)
                     used_live_fallback = not text and bool(last_live_text)
+                    used_live_tail = False
                     if used_live_fallback:
                         text = last_live_text
+                    elif text and last_live_text:
+                        recovered_text = recover_live_tail(text, last_live_text)
+                        used_live_tail = recovered_text != text
+                        text = recovered_text
                     emit(
                         {
                             "type": "final",
                             "text": text,
                             "latency_ms": latency_ms,
                             "used_live_fallback": used_live_fallback,
+                            "used_live_tail": used_live_tail,
                         }
                     )
 

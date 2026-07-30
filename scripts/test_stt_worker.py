@@ -2,7 +2,12 @@ import unittest
 
 import numpy as np
 
-from scripts.stt_worker import merge_rolling_transcript, prepare_final_audio
+from scripts.stt_worker import (
+    FINAL_TRAILING_PADDING_SECONDS,
+    merge_rolling_transcript,
+    prepare_final_audio,
+    recover_live_tail,
+)
 
 
 class PrepareFinalAudioTests(unittest.TestCase):
@@ -14,8 +19,13 @@ class PrepareFinalAudioTests(unittest.TestCase):
 
         prepared = prepare_final_audio(quiet_speech, sample_rate)
 
-        self.assertEqual(prepared.size, quiet_speech.size)
-        self.assertGreater(float(np.sqrt(np.mean(prepared * prepared))), 0.01)
+        expected_padding = int(sample_rate * FINAL_TRAILING_PADDING_SECONDS)
+        self.assertEqual(prepared.size, quiet_speech.size + expected_padding)
+        self.assertGreater(
+            float(np.sqrt(np.mean(prepared[:-expected_padding] ** 2))),
+            0.01,
+        )
+        self.assertEqual(float(np.max(np.abs(prepared[-expected_padding:]))), 0.0)
 
     def test_silence_remains_silence(self):
         sample_rate = 16_000
@@ -52,6 +62,38 @@ class MergeRollingTranscriptTests(unittest.TestCase):
         )
 
         self.assertEqual(merged, "this is already visible")
+
+
+class RecoverLiveTailTests(unittest.TestCase):
+    def test_restores_a_last_word_missing_from_the_final_pass(self):
+        recovered = recover_live_tail(
+            "We have hundreds of online dictations for beginners true advanced.",
+            "We have hundreds of online dictations for beginners through advanced students.",
+        )
+
+        self.assertEqual(
+            recovered,
+            "We have hundreds of online dictations for beginners true advanced students.",
+        )
+
+    def test_restores_a_trailing_phrase_after_a_shared_anchor(self):
+        recovered = recover_live_tail(
+            "These dictations are designed for beginners.",
+            "These dictations are designed for beginners through advanced students.",
+        )
+
+        self.assertEqual(
+            recovered,
+            "These dictations are designed for beginners through advanced students.",
+        )
+
+    def test_keeps_final_word_choice_when_live_pass_has_no_extra_tail(self):
+        recovered = recover_live_tail(
+            "You can receive a final grade.",
+            "You can receive a final blow.",
+        )
+
+        self.assertEqual(recovered, "You can receive a final grade.")
 
 
 if __name__ == "__main__":

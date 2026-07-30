@@ -33,6 +33,8 @@ use crate::{
     text_intelligence::TextIntelligence,
 };
 
+const FINAL_CAPTURE_GRACE: Duration = Duration::from_millis(180);
+
 fn main() -> Result<()> {
     let args = Args::parse();
     let config = AppConfig::from_args(args)?;
@@ -307,6 +309,10 @@ fn finish_recording(
     inserter: &TextInserter,
     active_window: &str,
 ) -> Result<Option<String>> {
+    // Key-up can arrive while the microphone driver still has the final
+    // phoneme in flight. Keep the stream open briefly so the last word is not
+    // clipped before the full-utterance recognition pass.
+    thread::sleep(FINAL_CAPTURE_GRACE);
     let audio = recorder.stop()?;
     if let Some(handle) = audio_forwarder.take() {
         let _ = handle.join();

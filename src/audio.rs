@@ -264,8 +264,13 @@ fn to_mono(input: &[f32], channels: usize) -> Vec<f32> {
 }
 
 fn has_voice(samples: &[f32]) -> bool {
+    let (peak, rms) = signal_metrics(samples);
+    peak >= 0.006 || rms >= 0.002
+}
+
+pub fn signal_metrics(samples: &[f32]) -> (f32, f32) {
     if samples.is_empty() {
-        return false;
+        return (0.0, 0.0);
     }
     let peak = samples
         .iter()
@@ -273,7 +278,7 @@ fn has_voice(samples: &[f32]) -> bool {
         .fold(0.0, f32::max);
     let rms =
         (samples.iter().map(|sample| sample * sample).sum::<f32>() / samples.len() as f32).sqrt();
-    peak >= 0.006 || rms >= 0.002
+    (peak, rms)
 }
 
 fn resample_linear(input: &[f32], input_rate: u32, output_rate: u32) -> Vec<f32> {
@@ -298,7 +303,9 @@ fn resample_linear(input: &[f32], input_rate: u32, output_rate: u32) -> Vec<f32>
 
 #[cfg(test)]
 mod tests {
-    use super::{has_voice, to_mono};
+    use std::{thread, time::Duration};
+
+    use super::{has_voice, to_mono, Recorder};
 
     #[test]
     fn stereo_capture_uses_active_channel_instead_of_diluting_it() {
@@ -320,5 +327,34 @@ mod tests {
     fn release_tail_keeps_quiet_voice_but_ignores_room_silence() {
         assert!(has_voice(&[0.0, 0.006, -0.006, 0.001]));
         assert!(!has_voice(&[0.0, 0.0008, -0.0008, 0.0004]));
+    }
+
+    #[test]
+    fn release_tail_waits_through_late_voice_until_a_quiet_boundary() {
+        let recorder = Recorder::new(1_000).expect("recorder");
+        let frames = recorder.frames.clone();
+        let producer = thread::spawn(move || {
+            for _ in 0..8 {
+                thread::sleep(Duration::from_millis(5));
+                frames.lock().expect("frames").extend_from_slice(&[0.01; 5]);
+            }
+            for _ in 0..8 {
+                thread::sleep(Duration::from_millis(5));
+                frames.lock().expect("frames").extend_from_slice(&[0.0; 5]);
+            }
+        });
+
+        let tail = recorder.wait_for_release_tail(
+            Duration::from_millis(15),
+            Duration::from_millis(15),
+            Duration::from_millis(150),
+            Duration::from_millis(5),
+        );
+        producer.join().expect("producer");
+
+        assert!(tail.ended_on_silence);
+        assert!(tail.waited >= Duration::from_millis(40));
+        assert!(tail.waited < Duration::from_millis(150));
+        assert!(tail.appended_seconds >= 0.05);
     }
 }

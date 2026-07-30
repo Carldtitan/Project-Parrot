@@ -40,9 +40,10 @@ node scripts\render_brand_icon.cjs .build\icon.png 256
 ```
 
 The renderer uses a fixed 10.5% inset and a 22.5% app-tile corner radius. It is
-deterministic and is called automatically by `scripts/package_desktop.ps1`.
-The committed 512 px `parrot-app-icon.png` is the large application reference
-and can be regenerated with the same script.
+deterministic. The committed 512 px `parrot-app-icon.png` is the large
+application reference and can be regenerated with the same script.
+`scripts/package_desktop.ps1` copies that committed reference into the build,
+so clean release runners do not need a browser solely for icon rasterization.
 
 Tray icons use an optical crop rather than shrinking the roomy application
 tile. The 16 px and 32 px sources keep the bird close to the pixel boundary and

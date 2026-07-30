@@ -1,30 +1,38 @@
+@font-face {
+  font-family: "Schibsted Grotesk";
+  src: url("./assets/fonts/SchibstedGrotesk-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
-  --ink: #20242a;
-  --ink-strong: #111419;
-  --muted: #696f79;
-  --muted-strong: #505660;
-  --canvas: #f6f7f9;
-  --surface: #ffffff;
-  --surface-subtle: #eef0f4;
-  --surface-hover: #e8eaf0;
-  --line: #dfe2e8;
-  --line-strong: #c9cdd6;
-  --sidebar: #171a20;
-  --sidebar-muted: #9ba1ad;
-  --sidebar-active: #f5f6f8;
-  --accent: #5865f2;
-  --accent-hover: #4753d8;
-  --accent-soft: #e9ebff;
+  --ink: #26212b;
+  --ink-strong: #17131c;
+  --muted: #716a79;
+  --muted-strong: #534c5a;
+  --canvas: #f6f4f8;
+  --surface: #fdfcfe;
+  --surface-subtle: #efebf2;
+  --surface-hover: #e8e3ec;
+  --line: #ded8e3;
+  --line-strong: #c8c0ce;
+  --sidebar: #1b1720;
+  --sidebar-muted: #aea6b8;
+  --sidebar-active: #faf8fc;
+  --accent: #d9ff57;
+  --accent-hover: #c8ef3e;
+  --accent-soft: #efffc0;
+  --accent-ink: #3d4d00;
   --success: #16845b;
   --warning: #b96b18;
   --danger: #c13e43;
   --danger-soft: #fdebec;
-  --focus: 0 0 0 3px rgba(88, 101, 242, 0.22);
-  --shadow-raised: 0 18px 40px rgba(24, 28, 35, 0.13);
-  font-family:
-    "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  font-size: 14px;
+  --focus: 0 0 0 3px rgba(147, 177, 33, 0.34);
+  --shadow-raised: 0 18px 40px rgba(26, 20, 31, 0.15);
+  font-family: "Schibsted Grotesk", "Arial", sans-serif;
+  font-size: 15px;
 }
 
 * {
@@ -120,7 +128,7 @@ button:disabled {
 }
 
 .brand-symbol .brand-accent {
-  fill: #7d86ff;
+  fill: var(--accent);
 }
 
 .primary-nav {
@@ -373,7 +381,7 @@ button:disabled {
 .primary-button {
   padding: 0 14px;
   border: 1px solid var(--accent);
-  color: #ffffff;
+  color: var(--ink-strong);
   background: var(--accent);
 }
 
@@ -403,11 +411,11 @@ button:disabled {
 }
 
 .text-button {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .text-button:hover:not(:disabled) {
-  color: var(--accent-hover);
+  color: var(--ink-strong);
   background: var(--accent-soft);
 }
 
@@ -457,11 +465,11 @@ button:disabled {
   justify-content: center;
   gap: 8px;
   padding: 0 13px;
-  border: 1px solid #424bdf;
+  border: 1px solid #b6dc2d;
   border-radius: 12px;
-  color: #ffffff;
+  color: var(--ink-strong);
   background: var(--accent);
-  box-shadow: 0 8px 16px rgba(88, 101, 242, 0.2);
+  box-shadow: 0 8px 16px rgba(87, 107, 15, 0.18);
   transition:
     background 160ms ease-out,
     transform 160ms ease-out,
@@ -470,7 +478,7 @@ button:disabled {
 
 .record-button:hover {
   background: var(--accent-hover);
-  box-shadow: 0 10px 22px rgba(88, 101, 242, 0.26);
+  box-shadow: 0 10px 22px rgba(87, 107, 15, 0.24);
   transform: translateY(-1px);
 }
 
@@ -491,6 +499,7 @@ button:disabled {
 
 [data-state="recording"] .record-button {
   border-color: #a52f35;
+  color: #ffffff;
   background: var(--danger);
   box-shadow: 0 9px 20px rgba(193, 62, 67, 0.22);
   animation: record-breathe 1.6s ease-in-out infinite;

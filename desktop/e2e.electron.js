@@ -56,6 +56,19 @@ test(
     const window = await mainWindow(app);
     await window.waitForLoadState("domcontentloaded");
     await showMain(app);
+    const clipboardProbe = `Parrot clipboard probe ${Date.now()}`;
+    const clipboardAvailable = await app.evaluate(
+      ({ clipboard }, value) => {
+        clipboard.writeText(value);
+        return clipboard.readText() === value;
+      },
+      clipboardProbe,
+    );
+    if (!clipboardAvailable) {
+      context.diagnostic(
+        "Windows clipboard is unavailable in this desktop session; the copy IPC completion is still verified.",
+      );
+    }
 
     const now = new Date().toISOString();
     await window.evaluate(
@@ -122,13 +135,25 @@ test(
     await window.locator("#history-search").fill("authentication");
     assert.equal(await window.locator("#history-list .history-row").count(), 1);
     await window.locator("#history-search").fill("");
-    const firstHistoryRow = window.locator("#history-list .history-row").first();
-    await firstHistoryRow.hover();
-    await firstHistoryRow.getByRole("button", { name: "Copy" }).click();
-    assert.match(
-      await app.evaluate(({ clipboard }) => clipboard.readText()),
-      /authentication middleware/,
+    const authenticationRow = window
+      .locator("#history-list .history-row")
+      .filter({ hasText: "authentication middleware" });
+    await authenticationRow.hover();
+    const copyHistoryButton = authenticationRow.getByRole("button", {
+      name: "Copy",
+    });
+    await copyHistoryButton.click();
+    await window.waitForFunction(
+      () =>
+        document.querySelector("[data-action='copy-history']")?.textContent ===
+        "Copied",
     );
+    if (clipboardAvailable) {
+      assert.match(
+        await app.evaluate(({ clipboard }) => clipboard.readText()),
+        /authentication middleware/,
+      );
+    }
 
     await window.getByRole("button", { name: "Personalize" }).click();
     await window.locator("#dictionary-spoken").fill("open ai");

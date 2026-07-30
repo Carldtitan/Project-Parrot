@@ -1,78 +1,87 @@
 ---
 name: Parrot
-description: A private Windows dictation tool expressed as a live broadcast-caption desk.
+description: A local Windows dictation tool expressed as a quiet bird perched at the edge of work.
 colors:
-  ink: "#29232d"
-  ink-strong: "#17131c"
-  muted: "#746c79"
-  muted-strong: "#564e5c"
-  canvas: "#f3f0f5"
-  surface: "#fbf9fc"
-  surface-subtle: "#ebe7ee"
-  surface-hover: "#e4dfe8"
-  line: "#dcd5e0"
-  line-strong: "#c5bdca"
-  sidebar: "#1c1721"
-  sidebar-muted: "#aca3b4"
-  sidebar-active: "#fbf9fc"
-  accent: "#d9ff57"
-  accent-hover: "#c7ee3d"
-  accent-soft: "#efffc1"
-  accent-ink: "#3c4b00"
-  success: "#16815a"
-  warning: "#b66a19"
-  danger: "#c84046"
-  danger-hover: "#b43339"
-  danger-soft: "#fdebed"
+  ink: "#29483f"
+  ink-strong: "#143a31"
+  muted: "#596f67"
+  muted-strong: "#4d685f"
+  canvas: "#edf3ee"
+  surface: "#fbfcf8"
+  surface-subtle: "#e5ede6"
+  surface-hover: "#dce8de"
+  line: "#d4ded5"
+  line-strong: "#bdccbf"
+  sidebar: "#103a31"
+  sidebar-muted: "#a9c1b5"
+  sidebar-active: "#f4f7ed"
+  accent: "#c7ee57"
+  accent-hover: "#b8df45"
+  accent-soft: "#eaf7c8"
+  accent-ink: "#24451f"
+  success: "#36875b"
+  warning: "#bd782f"
+  danger: "#ce4437"
+  danger-hover: "#b83a30"
+  danger-soft: "#fcebe7"
+  brand-jungle: "#123f35"
+  brand-leaf: "#4f9a58"
+  brand-tail-bright: "#91cf4e"
+  brand-wing-shadow: "#78b844"
+  brand-coral: "#ff7259"
+  brand-coral-shadow: "#e85143"
+  brand-feather: "#f4f6e9"
 typography:
   display:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
-    fontSize: "clamp(30px, 4vw, 38px)"
+    fontFamily: "Onest, Arial, sans-serif"
+    fontSize: "34px"
     fontWeight: 720
-    lineHeight: 1.02
-    letterSpacing: "-0.05em"
+    lineHeight: 1.08
+    letterSpacing: "-0.03em"
   transcript:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
-    fontSize: "clamp(21px, 2.5vw, 27px)"
-    fontWeight: 470
+    fontFamily: "Onest, Arial, sans-serif"
+    fontSize: "25px"
+    fontWeight: 480
     lineHeight: 1.48
-    letterSpacing: "-0.026em"
+    letterSpacing: "-0.018em"
   title:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
+    fontFamily: "Onest, Arial, sans-serif"
     fontSize: "17px"
     fontWeight: 690
     letterSpacing: "-0.025em"
   body:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
+    fontFamily: "Onest, Arial, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
   navigation:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
+    fontFamily: "Onest, Arial, sans-serif"
     fontSize: "14px"
     fontWeight: 570
   button:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
+    fontFamily: "Onest, Arial, sans-serif"
     fontSize: "13px"
     fontWeight: 680
   label:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
+    fontFamily: "Onest, Arial, sans-serif"
     fontSize: "12px"
     fontWeight: 650
-  eyebrow:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
+  metadata:
+    fontFamily: "Onest, Arial, sans-serif"
     fontSize: "11px"
-    fontWeight: 720
-    letterSpacing: "0.12em"
+    fontWeight: 640
   input:
-    fontFamily: "Schibsted Grotesk, Arial, sans-serif"
+    fontFamily: "Onest, Arial, sans-serif"
     fontSize: "15px"
     fontWeight: 400
 rounded:
   compact: "7px"
   control: "8px"
   medium: "9px"
-  stage: "16px"
+  brand-tile: "10px"
+  feather: "13px 13px 13px 5px"
+  overlay: "15px"
+  stage: "18px"
   full: "99px"
 spacing:
   micro: "4px"
@@ -103,6 +112,7 @@ components:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.ink-strong}"
     typography: "{typography.button}"
+    rounded: "{rounded.feather}"
     padding: "0 15px"
     height: "50px"
     width: "118px"
@@ -124,15 +134,16 @@ components:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     rounded: "{rounded.stage}"
-  dictation-transport:
-    backgroundColor: "{colors.ink-strong}"
+  dictation-perch:
+    backgroundColor: "{colors.sidebar}"
     textColor: "{colors.sidebar-active}"
     rounded: "{rounded.stage}"
     padding: "16px 18px"
     height: "88px"
   overlay:
-    backgroundColor: "{colors.ink-strong}"
+    backgroundColor: "{colors.sidebar}"
     textColor: "{colors.sidebar-active}"
+    rounded: "{rounded.overlay}"
     padding: "0 13px 0 8px"
     height: "58px"
 ---
@@ -141,186 +152,204 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Caption Stage"**
+**Creative North Star: "The Perched Caption"**
 
-Parrot is a broadcast-caption desk for live speech: focused, editorial, and visibly local. An aubergine rail anchors the application, a chalk-lavender field keeps the room quiet, and parrot chartreuse marks the command that matters now. Live words occupy the largest typographic surface while recent takes remain close enough to recover without turning the experience into a dashboard.
+Parrot is the quiet bird at the edge of work: present, recognizable, and ready to catch speech without asking the user to enter a separate AI world. A literal geometric parrot anchors the forest rail, pale mineral surfaces hold the live text, and a dark-green perch carries every dictation control.
 
-The interface behaves as one composed instrument. A light caption stage and its dark bottom transport form a single silhouette; rules, not nested cards, organize the rest of the product. Schibsted Grotesk gives headings a compact editorial snap and keeps working text human and readable across the minimum and standard window sizes.
+The system is calm and editorial rather than dashboard-like. Live words own the largest working type; recent takes remain visible at the right edge; thin rules organize secondary views. The bird appears as the canonical mark, as a faint watermark on the caption field, and as the signal inside the floating overlay without becoming decorative clutter.
 
 **Key Characteristics:**
 
-- Deep aubergine rail and transport against a chalk-lavender desktop field.
-- Parrot chartreuse reserved for commands, focus, and the active rail tick.
-- Large live-caption typography paired with restrained uppercase eyebrows.
-- One composed caption stage with session memory at its right edge.
-- Editorial rules, compact controls, explicit text states, and local-processing cues.
+- Literal right-facing geometric parrot with a hidden P silhouette.
+- Jungle-green rail and control perch against pale mineral fields.
+- Leaf and wing chartreuse reserved for commands, focus, and readiness.
+- Coral beak color echoed only in recording and destructive states.
+- Onest typography, ruled secondary views, and clipped feather-like control corners.
 
 ## Colors
 
-The palette moves between aubergine ink and chalk-lavender fields, with a high-energy chartreuse command channel and restrained semantic state colors.
+The product palette grows directly from the bird: jungle and leaf greens, a chartreuse wing, coral beak accents, and feather-white mineral surfaces.
 
 ### Primary
 
-- **Parrot Chartreuse:** Starts hands-free dictation, confirms primary form actions, marks the active rail destination, and signals local availability.
-- **Pressed Chartreuse:** Hover state for primary actions.
-- **Chartreuse Wash:** Background feedback for low-emphasis text actions.
-- **Moss Ink:** Accessible text actions placed on light fields and copy placed against chartreuse.
+- **Wing Chartreuse:** The bird wing, primary commands, active rail tick, focus channel, and local-ready indicator.
+- **Pressed Wing:** Hover state for primary commands.
+- **Wing Wash:** Low-emphasis text-action feedback.
+- **Forest Ink:** Accessible copy paired with chartreuse and low-emphasis actions on pale fields.
 
 ### Secondary
 
-- **Ready Green:** Ready engine status.
-- **Working Amber:** Starting, processing, formatting, setup, and sample-preview state.
+- **Ready Leaf:** Ready engine status.
+- **Working Ochre:** Starting, processing, formatting, setup, and preview state.
 - **Recording Coral:** Recording, cancellation, destructive actions, and errors.
-- **Deep Recording Coral:** Hover state for solid destructive actions.
-- **Coral Wash:** Low-emphasis destructive hover feedback.
+- **Deep Recording Coral:** Hover state for destructive actions.
+- **Coral Mist:** Low-emphasis destructive feedback.
+
+### Tertiary
+
+- **Mark Jungle:** Head, chest, body, eye, and hidden P in the canonical bird.
+- **Mark Leaf:** Long tail feather.
+- **Bright Tail:** Forward tail feather.
+- **Wing Shadow:** Secondary wing plane.
+- **Macaw Coral:** Beak highlight.
+- **Beak Shadow:** Lower beak plane.
+- **Feather White:** Face, catchlight, and canonical icon tile relationship.
 
 ### Neutral
 
-- **Aubergine Ink:** Default body and control copy.
-- **Deep Aubergine:** Highest-emphasis text, the transport, and the overlay.
-- **Plum Note:** Descriptions, timestamps, and secondary metadata.
-- **Plum Label:** Durable labels and quiet controls.
-- **Chalk Lavender:** Main application canvas.
-- **Caption White:** Live stage, fields, and rail-active copy.
-- **Lavender Veil:** Subtle neutral surface.
-- **Lavender Hover:** Neutral row-action hover feedback.
-- **Editorial Rule:** Default section and row dividers.
-- **Strong Rule:** Input and control borders.
-- **Night Aubergine:** Persistent navigation rail.
-- **Rail Plum:** Inactive rail and overlay secondary copy.
-- **Rail Paper:** Active navigation and high-emphasis dark-surface copy.
+- **Canopy Ink:** Default body and control copy.
+- **Deep Canopy:** Highest-emphasis text.
+- **Moss Note:** Descriptions, timestamps, and metadata.
+- **Moss Label:** Durable labels and quiet controls.
+- **Mineral Field:** Main application canvas.
+- **Feather Surface:** Live stage and form fields.
+- **Pale Leaf Surface:** Subtle neutral regions.
+- **Leaf Hover:** Neutral row-action feedback.
+- **Stem Rule:** Default section and row dividers.
+- **Strong Stem:** Form and control borders.
+- **Forest Rail:** Persistent navigation and dictation perch.
+- **Rail Sage:** Inactive navigation and dark-surface secondary copy.
+- **Rail Feather:** Active navigation and high-emphasis dark-surface copy.
 
 ### Named Rules
 
-**The One Command Signal Rule.** Chartreuse identifies the actionable or current command channel; it never becomes a decorative field color.
+**The Plumage Has Jobs Rule.** Chartreuse marks commands and readiness, coral marks recording or destructive state, and neither becomes an ornamental field color.
 
-**The State Has Meaning Rule.** Ready green, working amber, and recording coral are semantic and always accompanied by readable state text.
+**The Bird Is the Brand Rule.** Use the canonical full-color SVG; never trace, recolor, outline, animate, or redraw its geometry.
 
 ## Typography
 
-**Display Font:** Schibsted Grotesk (with Arial and sans-serif fallbacks)
-**Body Font:** Schibsted Grotesk (with Arial and sans-serif fallbacks)
+**Display Font:** Onest (with Arial and sans-serif fallbacks)
+
+**Body Font:** Onest (with Arial and sans-serif fallbacks)
+
 **Label/Mono Font:** Cascadia Mono (with Consolas and monospace fallbacks, diagnostics only)
 
-**Character:** The bundled Schibsted Grotesk variable font is editorial without feeling precious. Tight display tracking makes view titles decisive, while the lower-weight caption role lets live speech feel open and continuous. Monospace is limited to diagnostic output.
+**Character:** The bundled Onest variable family is round enough to feel approachable and controlled enough for a native productivity tool. Tight display tracking gives headings confidence, while the lighter caption weight lets speech remain open and readable. Monospace is limited to diagnostics.
 
 ### Hierarchy
 
-- **Display** (720, clamp 30–38px, 1.02): One decisive title per view.
-- **Transcript** (470, clamp 21–27px, 1.48): Live or last-completed dictated text; the central reading voice.
+- **Display** (720, 34px, 1.08): One view title.
+- **Transcript** (480, 25px, 1.48): Live or last-completed dictated text.
 - **Title** (690, 17px, tight tracking): Caption, memory, settings, and subsection headings.
-- **Body** (400, 14px, 1.5): Explanations, history entries, and supporting copy up to 64 characters wide.
+- **Body** (400, 14px, 1.5): Supporting copy and history content up to 64 characters wide.
 - **Navigation** (570, 14px): Persistent rail destinations.
-- **Button** (680, 13px): Primary, secondary, text, and transport actions.
-- **Label** (650, 12px): Field names, status, settings descriptions, and metadata.
-- **Eyebrow** (720, 11px, 0.12em, uppercase): Editorial orientation above the live stage and memory.
+- **Button** (680, 13px): Primary, secondary, text, and perch actions.
+- **Label** (650, 12px): Field names, statuses, and settings descriptions.
+- **Metadata** (640, 11px): Timestamps, preview notes, and compact supporting information.
 
 ### Named Rules
 
-**The Caption Owns Scale Rule.** Live transcript text is the largest working content on screen; settings and metadata never compete with it.
+**The Caption Owns Scale Rule.** Live transcript text is the largest working content; settings and metadata never compete with it.
 
-**The Editorial Label Rule.** Use uppercase, tracked eyebrows only to orient a region, never as repeated decoration or body copy.
+**The Live Wordmark Rule.** Set “Parrot” as live Onest text at weight 740 beside the mark; never convert it to paths or place it inside the bird tile.
 
 ## Layout
 
-The desktop shell uses a 184px labeled rail and a fluid workspace above a 48px draggable status bar. Main views are centered within an 1180px maximum and use 38px side padding at the standard size. The Home view fills the available height: the live caption stage expands first, session memory occupies a 258px right column, and an 88px transport locks to the stage bottom.
+The desktop shell uses a 184px labeled forest rail and a fluid workspace above a 48px draggable status bar. Main views are centered within an 1180px maximum with 38px side padding. Home fills the available height: the live caption expands first, session memory occupies a 258px right column, and an 88px dark-green perch locks to the bottom.
 
-Other views retain the same editorial field rather than reproducing the stage. History is a full-width ruled list; Personalize uses two 1fr columns with a 38px gap; Settings uses a 210px explanatory column beside fluid fields. The recurrent rhythm is 8–16px within controls, 24px between related regions, and 38px at major column and section boundaries.
+History remains a full-width ruled list; Personalize uses two equal columns with a 38px gap; Settings uses a 210px explanatory column beside fluid fields. The recurrent rhythm is 8–16px inside controls, 24px between related regions, and 38px at major columns and sections.
 
-At 980px and below, the rail contracts to 74px and exposes destination names through keyboard-accessible tooltips; session memory narrows to 230px and settings use a 180px explanatory column. At 780px and below, the view padding becomes 24px, memory narrows to 200px and shows only the most recent take, transport labels compact, personalization becomes one column, and settings fields stack.
+At 980px and below, the rail contracts to 74px and exposes destination names through keyboard-accessible tooltips; memory narrows to 230px. At 780px and below, view padding becomes 24px, memory narrows to 200px and shows only the newest take, transport labels compact, and multi-column forms stack.
 
-**The Center Voice, Right Memory Rule.** On the live surface, the caption always receives the flexible center while recoverable session memory holds a narrower right edge.
+**The Center Voice, Right Memory Rule.** Live speech receives the flexible center while recoverable session memory holds the narrower right edge.
 
-**The One Transport Rule.** Hands-free, push-to-talk guidance, timer, recovery, and cancellation belong to one bottom control band.
+**The One Perch Rule.** Hands-free, push-to-talk guidance, timer, recovery, and cancellation belong to one dark-green bottom band.
 
 ## Elevation & Depth
 
-Parrot is editorial and mostly flat. One-pixel rules structure lists and forms; tonal shifts separate the rail, caption surface, memory strip, and transport. Shadows are limited to the composed stage, its active chartreuse command, keyboard focus, collapsed-rail tooltips, and the floating overlay.
+Parrot is mostly flat and rule-led. Tonal greens separate the rail, caption surface, memory strip, and perch. Shadows are limited to the composed live instrument, its primary command, keyboard focus, collapsed-rail tooltips, and the floating overlay.
 
 ### Shadow Vocabulary
 
-- **Focus halo** (`0 0 0 3px rgba(138, 165, 34, 0.36)`): Keyboard focus and active fields.
-- **Caption float** (`0 18px 48px rgba(35, 27, 40, 0.08)`): Light lift beneath the live stage.
-- **Transport float** (`0 18px 48px rgba(35, 27, 40, 0.12)`): Slightly stronger grounding below the dark transport.
-- **Primary command** (`0 8px 20px rgba(121, 147, 27, 0.2)`): Chartreuse hands-free action at rest.
-- **Floating overlay** (`0 16px 38px rgba(13, 9, 15, 0.34)`): Non-focus-stealing recording overlay above other applications.
+- **Focus halo** (`0 0 0 3px rgba(103, 148, 64, 0.3)`): Keyboard focus and active fields.
+- **Caption float** (`0 18px 48px rgba(20, 58, 49, 0.08)`): Light lift beneath the caption stage.
+- **Perch float** (`0 18px 48px rgba(16, 58, 49, 0.16)`): Grounding beneath the dark-green control band.
+- **Primary feather** (`0 8px 20px rgba(86, 119, 33, 0.22)`): Chartreuse hands-free action at rest.
+- **Floating bird** (`0 16px 38px rgba(7, 35, 28, 0.34)`): Non-focus-stealing overlay above other applications.
 
 ### Named Rules
 
-**The Instrument, Not Cards Rule.** Elevate the caption stage as one instrument; persistent rows, settings sections, and history remain flat and rule-led.
+**The Instrument, Not Cards Rule.** Elevate the caption and perch as one instrument; persistent rows, settings, and history remain flat.
 
 ## Shapes
 
-The signature silhouette is a 16px composite: the caption stage owns the top corners and the transport owns the bottom corners. Standard buttons and fields use compact 7–9px rounding, while the primary dictation action uses an 11px corner and the overlay uses 13px. Circular geometry is reserved for state dots and switch thumbs; toggle tracks are fully rounded. The active rail destination is marked by a narrow chartreuse edge tick rather than a filled pill.
+The signature live instrument uses an 18px composite radius: the pale stage owns the top corners and the forest perch owns the bottom corners. Standard controls use 7–10px rounding. The hands-free action is clipped like a feather, with 13px corners and a 5px lower-left cut; the overlay uses 15px corners and an 11px bird tile. Circles are reserved for state dots, the bird eye, and switch thumbs.
 
-**The Composite Stage Rule.** The light stage and dark transport must read as one object; never separate them into independent floating cards.
+The canonical bird is flat geometric SVG on a 64-unit grid. Its right-facing dark body hides a P, the pale face and coral beak complete the bowl, and two long tail feathers protect recognition. Standard icon tiles use a 10.5% inset and 22.5% corner radius; 16–20px tray use requires the optical crop.
 
-**The Editorial Edge Rule.** Use borders and edge ticks for hierarchy before introducing additional rounded containers.
+**The Perched Silhouette Rule.** The caption and control perch read as one object; never split them into independent cards.
+
+**The Feather Cut Rule.** Asymmetric clipping belongs to the primary dictation action, not every control.
 
 ## Components
 
 ### Buttons
 
-- **Shape:** Standard actions use compact 8px corners and a 38px minimum height; the signature hands-free command is 50px tall with 11px corners.
-- **Primary:** Parrot Chartreuse with Deep Aubergine copy and 16px horizontal padding.
-- **Hover / Focus:** Primary actions shift to Pressed Chartreuse; all controls use the chartreuse focus halo, and pressed standard buttons move down by one pixel.
-- **Secondary / Text / Destructive:** Secondary actions remain transparent with a Strong Rule border; text actions use Moss Ink and Chartreuse Wash; recording and destructive actions use the coral channel.
+- **Shape:** Standard actions use 8px corners and a 38px minimum height; the signature hands-free command is 50px tall with a 13/5px feather cut.
+- **Primary:** Wing Chartreuse with Deep Canopy copy and 16px horizontal padding.
+- **Hover / Focus:** Primary actions shift to Pressed Wing; all controls use the green focus halo, and pressed standard actions move down one pixel.
+- **Secondary / Text / Destructive:** Secondary actions remain transparent with a Strong Stem border; text actions use Forest Ink and Wing Wash; destructive actions use coral.
 
 ### Chips
 
-- **Style:** Learned terms use a Caption White field, Editorial Rule border, compact 7px corners, and a muted repetition count.
-- **State:** Chips report learned local vocabulary; they do not behave as promotional badges or primary navigation.
+- **Style:** Learned terms use Feather Surface, a Stem Rule border, compact 7px corners, and a muted repetition count.
+- **State:** Chips report learned local vocabulary; they are not promotional badges or navigation.
 
 ### Cards / Containers
 
-- **Corner Style:** Only the composed caption-stage instrument uses the 16px container radius.
-- **Background:** The live field uses Caption White; session memory uses a slightly darker lavender field; the transport uses Deep Aubergine.
-- **Shadow Strategy:** Stage and transport use the caption and transport shadows as one silhouette.
-- **Border:** Editorial Rule defines the stage seam, memory division, and row structure.
-- **Internal Padding:** The live field uses 27–30px; memory uses 16–27px; transport uses 16px vertically and 18px horizontally.
+- **Corner Style:** Only the composed caption instrument uses the 18px container radius.
+- **Background:** The live field uses Feather Surface, memory uses a pale leaf field, and the perch uses Forest Rail.
+- **Shadow Strategy:** Caption and perch use paired shadows as one silhouette.
+- **Border:** Stem Rule defines the memory seam and row structure.
+- **Internal Padding:** Live text uses 27–30px; memory uses 16–27px; perch uses 16px by 18px.
 
 ### Inputs / Fields
 
-- **Style:** Caption White fill, Strong Rule border, 8px control corners, and 42px height for single-line fields.
-- **Focus:** Border shifts toward chartreuse and receives the focus halo.
-- **Error / Disabled:** Disabled actions reduce opacity; destructive feedback uses coral rather than the command accent.
+- **Style:** Feather Surface fill, Strong Stem border, 8px corners, and 42px height.
+- **Focus:** Border shifts toward leaf green and receives the focus halo.
+- **Error / Disabled:** Disabled actions reduce opacity; destructive feedback uses coral rather than chartreuse.
 
 ### Navigation
 
-The Night Aubergine rail uses 43px rows with 9px corners, Rail Plum copy at rest, Rail Paper on hover and active states, and a 3px chartreuse edge tick for the current destination. Below 980px, icons remain visible and dark tooltips reveal labels on hover or keyboard focus.
+The Forest Rail uses 43px rows with 9px corners, Rail Sage copy at rest, Rail Feather on hover and active states, and a 3px chartreuse edge tick for the current destination. The literal bird sits in a pale 34px tile above the live Onest wordmark. Below 980px, icons remain and tooltips reveal labels on hover or focus.
+
+### Parrot Mark
+
+Use the canonical SVG as the sole bird source for shell, overlay, tray, installer, and release assets. Keep clear space equal to the eye diameter. Do not render the standard full-color mark below 24px; use the optical tray crop at 16–20px.
 
 ### Caption Stage
 
-The live field is the flexible center of Home and carries the largest working type. Its right-side session memory shows recent takes and a compact two-by-two usage grid. During recording, a 4px inset coral rule appears on the live edge while text labels also announce the state.
+The live field is the flexible center and carries the largest working type. A very low-opacity canonical bird watermark perches at its lower-right edge. During recording, a 4px inset coral rule appears while text also announces the state.
 
-### Dictation Transport
+### Dictation Perch
 
-The dark bottom band keeps the chartreuse hands-free action, push-to-talk shortcut, timer, paste recovery, and cancellation in one scan line. At the compact breakpoint, secondary labels shorten and mutually exclusive recovery or cancellation actions preserve space.
+The forest bottom band keeps the chartreuse hands-free action, push-to-talk shortcut, timer, recovery, and cancellation in one scan line. Compact widths shorten labels and preserve the mutually relevant action.
 
 ### Toggle Rows
 
-Settings toggles pair a 13px title and 12px description with a 40×23px track. Checked state uses a darker chartreuse-derived green, and keyboard focus uses the standard halo.
+Settings toggles pair a 13px title and 12px description with a 40×23px fully rounded track. Checked state uses leaf green; keyboard focus uses the standard halo.
 
 ### Recording Overlay
 
-The overlay is a 58px Deep Aubergine strip with 13px corners, a 42px signal tile, readable state and mode text, and the floating-overlay shadow. Chartreuse represents non-recording work; coral plus white meter bars represents active recording.
+The overlay is a 58px Forest Rail strip with 15px corners and an 11px bird tile. The canonical mark itself is the signal: recording wraps it with a coral ring while readable state and mode text remain present.
 
 ## Do's and Don'ts
 
 ### Do:
 
+- **Do** use the canonical literal bird consistently across shell, overlay, tray, installer, and release assets.
 - **Do** give live speech the flexible center and largest working type.
-- **Do** keep chartreuse concentrated on the current command, focus, active rail tick, and local signal.
-- **Do** keep session memory visible beside the live caption at supported desktop widths.
-- **Do** use editorial rules and shared edges to organize history, settings, and personalization.
-- **Do** pair every colored state with explicit text, visible keyboard focus, and reduced-motion behavior.
-- **Do** preserve the single composed silhouette between the live stage and bottom transport.
+- **Do** keep chartreuse concentrated on commands, focus, active rail tick, and local readiness.
+- **Do** use coral only for the beak, recording, destructive actions, and errors.
+- **Do** organize secondary views with mineral fields, shared edges, and thin stem rules.
+- **Do** preserve visible keyboard focus, text state labels, reduced-motion behavior, and the optical tray crop.
 
 ### Don't:
 
-- **Don't** split the caption stage, memory, and transport into separate rounded cards.
-- **Don't** reintroduce the generic cool-gray, cobalt, and Segoe dashboard identity.
-- **Don't** use decorative gradients, ornamental waveforms, badge collections, or oversized AI-marketing headlines.
-- **Don't** fill every active navigation item or content section with a rounded pill.
-- **Don't** place engine, model, thread, or diagnostic controls before everyday dictation behavior.
+- **Don't** trace, recolor, animate, outline, or decorate the canonical bird.
+- **Don't** split caption, memory, and perch into separate rounded cards.
+- **Don't** return to an anonymous gray-and-blue dictation dashboard.
+- **Don't** use gradients, ornamental waveforms, badge collections, or oversized AI-marketing headlines.
+- **Don't** apply the feather cut to ordinary controls or fill active navigation with pills.
 - **Don't** copy another dictation product's branding, assets, wording, colors, or pixel-level layout.

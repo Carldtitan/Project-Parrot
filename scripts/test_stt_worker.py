@@ -1,3 +1,4 @@
+import base64
 import unittest
 
 import numpy as np
@@ -7,6 +8,9 @@ from scripts.stt_worker import (
     FINAL_DIRECT_PASS_SECONDS,
     FINAL_TAIL_RESCUE_MIN_SECONDS,
     collapse_live_duplicate,
+    decode_f32le,
+    join_audio_chunks,
+    live_window,
     merge_rolling_transcript,
     merge_final_segments,
     next_live_sample_target,
@@ -15,6 +19,32 @@ from scripts.stt_worker import (
     split_final_audio,
     transcribe_final,
 )
+
+
+class StreamingBufferTests(unittest.TestCase):
+    def test_decodes_audio_into_compact_float32_storage(self):
+        source = np.linspace(-1.0, 1.0, 16_000, dtype=np.float32)
+
+        decoded = decode_f32le(base64.b64encode(source.tobytes()).decode("ascii"))
+
+        self.assertEqual(decoded.dtype, np.float32)
+        self.assertEqual(decoded.nbytes, source.nbytes)
+        self.assertTrue(np.array_equal(decoded, source))
+
+    def test_live_window_joins_only_the_requested_tail(self):
+        chunks = [
+            np.arange(0, 8, dtype=np.float32),
+            np.arange(8, 16, dtype=np.float32),
+            np.arange(16, 24, dtype=np.float32),
+        ]
+
+        window, rolling = live_window(chunks, 24, sample_rate=4, max_seconds=3)
+
+        self.assertTrue(rolling)
+        self.assertTrue(np.array_equal(window, np.arange(12, 24, dtype=np.float32)))
+        self.assertTrue(
+            np.array_equal(join_audio_chunks(chunks), np.arange(24, dtype=np.float32))
+        )
 
 
 class PrepareFinalAudioTests(unittest.TestCase):

@@ -8,6 +8,11 @@ use serde_json::json;
 
 const MAX_CLEANUP_WORDS: usize = 320;
 
+pub fn deterministic_cleanup(transcript: &str, developer_context: bool) -> String {
+    let repaired = apply_known_recognition_repairs(transcript);
+    ensure_basic_formatting(&repaired, transcript, developer_context)
+}
+
 #[derive(Clone)]
 pub struct OllamaCleaner {
     model: String,
@@ -604,8 +609,8 @@ fn all_words(text: &str) -> Vec<String> {
 mod tests {
     use super::{
         all_words, apply_known_recognition_repairs, build_prompt, constrain_formatter_output,
-        ensure_basic_formatting, reconcile_candidate, same_word_sequence, split_cleanup_chunks,
-        strip_wrapping_quotes,
+        deterministic_cleanup, ensure_basic_formatting, reconcile_candidate, same_word_sequence,
+        split_cleanup_chunks, strip_wrapping_quotes,
     };
 
     #[test]
@@ -780,6 +785,18 @@ mod tests {
         assert_eq!(
             ensure_basic_formatting("const parrot = true", "const parrot = true", true),
             "const parrot = true"
+        );
+    }
+
+    #[test]
+    fn deterministic_fallback_formats_without_ollama() {
+        assert_eq!(
+            deterministic_cleanup("how does it work", false),
+            "How does it work?"
+        );
+        assert_eq!(
+            deterministic_cleanup("i finished the local fallback", false),
+            "I finished the local fallback."
         );
     }
 }

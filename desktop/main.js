@@ -22,6 +22,11 @@ const {
   sanitizeUserData,
 } = require("./product-data");
 const { DEFAULT_SETTINGS, sanitizeSettings } = require("./settings");
+const {
+  backendTimeoutMs,
+  controlRejection,
+  restartDelayMs,
+} = require("./runtime-health");
 
 let mainWindow;
 let overlayWindow;
@@ -32,6 +37,16 @@ let isQuitting = false;
 let hideOverlayTimer;
 let modelSetupProcess;
 let draftSaveTimer;
+let backendRestartTimer;
+let backendWatchdogTimer;
+let backendRecoveryInFlight = false;
+let backendRestartAttempts = 0;
+let backendStateEnteredAt = Date.now();
+let lastRecordingDurationMs = 0;
+const lastRendererRecoveryAt = { main: 0, overlay: 0 };
+
+const MAX_AUTOMATIC_RESTARTS = 3;
+const RENDERER_RECOVERY_COOLDOWN_MS = 30_000;
 
 const state = {
   backend: "stopped",
@@ -63,6 +78,27 @@ function userDataPath() {
 
 function personalizationPath() {
   return path.join(app.getPath("userData"), "personalization.json");
+}
+
+function runtimeHealthPath() {
+  return path.join(app.getPath("userData"), "runtime-health.log");
+}
+
+function recordRuntimeHealth(event, details = {}) {
+  try {
+    const target = runtimeHealthPath();
+    if (fs.existsSync(target) && fs.statSync(target).size > 256_000) {
+      fs.copyFileSync(target, `${target}.previous`);
+      fs.truncateSync(target, 0);
+    }
+    fs.appendFileSync(
+      target,
+      `${JSON.stringify({ at: new Date().toISOString(), event, ...details })}\n`,
+      "utf8",
+    );
+  } catch {
+    // Diagnostics must never become another reason for Parrot to stop.
+  }
 }
 
 function loadSettings() {
@@ -172,6 +208,7 @@ function createMainWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, "index.html"));
+  installWindowRecovery(mainWindow, "main");
   mainWindow.on("close", (event) => {
     if (!isQuitting) {
       event.preventDefault();
@@ -209,8 +246,52 @@ function createOverlayWindow() {
   overlayWindow.setAlwaysOnTop(true, "floating");
   overlayWindow.setIgnoreMouseEvents(true);
   overlayWindow.loadFile(path.join(__dirname, "overlay.html"));
+  installWindowRecovery(overlayWindow, "overlay");
   overlayWindow.on("closed", () => {
     overlayWindow = undefined;
+  });
+}
+
+function installWindowRecovery(window, label) {
+  const recover = (reason) => {
+    const now = Date.now();
+    if (
+      window.isDestroyed() ||
+      now - lastRendererRecoveryAt[label] < RENDERER_RECOVERY_COOLDOWN_MS
+    ) {
+      return;
+    }
+    lastRendererRecoveryAt[label] = now;
+    recordRuntimeHealth("renderer-recovery", { label, reason });
+    addLog(`${label === "main" ? "Parrot's window" : "The status bar"} recovered.`);
+    try {
+      if (!window.webContents.isDestroyed()) {
+        window.webContents.reloadIgnoringCache();
+      } else if (label === "main") {
+        window.destroy();
+        mainWindow = undefined;
+        createMainWindow();
+      } else {
+        window.destroy();
+        overlayWindow = undefined;
+        createOverlayWindow();
+      }
+      if (label === "main") {
+        showMainWindow();
+      }
+    } catch (error) {
+      recordRuntimeHealth("renderer-recovery-failed", {
+        label,
+        reason: error.message,
+      });
+    }
+  };
+  window.on("unresponsive", () => recover("unresponsive"));
+  window.webContents.on("render-process-gone", (_event, details) =>
+    recover(`render-process-gone:${details.reason}`),
+  );
+  window.webContents.on("did-fail-load", (_event, code) => {
+    if (code !== -3) recover(`did-fail-load:${code}`);
   });
 }
 
@@ -309,7 +390,14 @@ function rebuildTrayMenu() {
 }
 
 function showMainWindow() {
-  if (!mainWindow) createMainWindow();
+  if (
+    !mainWindow ||
+    mainWindow.isDestroyed() ||
+    mainWindow.webContents.isDestroyed()
+  ) {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+    createMainWindow();
+  }
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
@@ -404,6 +492,7 @@ function startBackend() {
   }
 
   const child = backendProcess;
+  recordRuntimeHealth("backend-start", { pid: child.pid });
   const stdout = readline.createInterface({ input: child.stdout });
   const stderr = readline.createInterface({ input: child.stderr });
 
@@ -415,6 +504,8 @@ function startBackend() {
     if (backendProcess === child) {
       backendProcess = undefined;
       updateState("error", `Dictation engine failed: ${error.message}`);
+      recordRuntimeHealth("backend-error", { code: error.code || "unknown" });
+      scheduleBackendRestart();
     }
   });
   child.on("exit", (code, signal) => {
@@ -431,8 +522,11 @@ function startBackend() {
           code !== null ? ` (code ${code})` : signal ? ` (${signal})` : ""
         }.`,
       );
+      recordRuntimeHealth("backend-exit", { code, signal, unexpected: true });
+      scheduleBackendRestart();
     } else {
       updateState("stopped", "Dictation is stopped.");
+      recordRuntimeHealth("backend-exit", { code, signal, unexpected: false });
     }
   });
 }
@@ -464,6 +558,11 @@ function sendBackendControl(message) {
     }
     return { ok: true, preview: true };
   }
+  const rejection = controlRejection(message.type, state.backend);
+  if (rejection) {
+    addLog(rejection, "error");
+    return { ok: false, message: rejection };
+  }
   if (!backendProcess?.stdin?.writable) {
     return { ok: false, message: "The dictation engine is not ready." };
   }
@@ -473,8 +572,24 @@ function sendBackendControl(message) {
 
 function sendAfterHiding(message) {
   if (isUiOnly()) return sendBackendControl(message);
+  const rejection = controlRejection(message.type, state.backend);
+  if (rejection || !backendProcess?.stdin?.writable) {
+    const result = {
+      ok: false,
+      message: rejection || "The dictation engine is not ready.",
+    };
+    addLog(result.message, "error");
+    showMainWindow();
+    return result;
+  }
   mainWindow?.hide();
-  setTimeout(() => sendBackendControl(message), 180);
+  setTimeout(() => {
+    const result = sendBackendControl(message);
+    if (!result.ok) {
+      showMainWindow();
+      updateState("error", result.message);
+    }
+  }, 180);
   return { ok: true };
 }
 
@@ -506,7 +621,14 @@ function stopBackend() {
           windowsHide: true,
           stdio: "ignore",
         });
-        killer.once("exit", resolve);
+        killer.once("exit", () => {
+          if (backendProcess === child) backendProcess = undefined;
+          resolve();
+        });
+        killer.once("error", () => {
+          if (backendProcess === child) backendProcess = undefined;
+          resolve();
+        });
       } else {
         resolve();
       }
@@ -515,8 +637,63 @@ function stopBackend() {
 }
 
 async function restartBackend() {
+  clearTimeout(backendRestartTimer);
+  backendRestartTimer = undefined;
+  backendRestartAttempts = 0;
   await stopBackend();
   if (!isQuitting) startBackend();
+}
+
+function scheduleBackendRestart() {
+  if (isQuitting || backendRestartTimer || backendRecoveryInFlight) return;
+  if (backendRestartAttempts >= MAX_AUTOMATIC_RESTARTS) {
+    updateState(
+      "error",
+      "The speech engine could not recover automatically. Open Parrot and choose Restart engine.",
+    );
+    showMainWindow();
+    return;
+  }
+  backendRestartAttempts += 1;
+  const delay = restartDelayMs(backendRestartAttempts);
+  updateState(
+    "recovering",
+    `Speech engine stopped. Recovering automatically (${backendRestartAttempts}/${MAX_AUTOMATIC_RESTARTS})…`,
+  );
+  backendRestartTimer = setTimeout(() => {
+    backendRestartTimer = undefined;
+    if (!isQuitting && !backendProcess) startBackend();
+  }, delay);
+}
+
+async function recoverUnresponsiveBackend(reason) {
+  if (backendRecoveryInFlight || isQuitting) return;
+  backendRecoveryInFlight = true;
+  recordRuntimeHealth("backend-watchdog", {
+    state: state.backend,
+    elapsedMs: Date.now() - backendStateEnteredAt,
+    reason,
+  });
+  addLog(`The speech engine stopped responding during ${state.backend}. Recovering…`, "error");
+  if (state.partial) saveRecoveryDraft(state.partial);
+  await stopBackend();
+  if (!isQuitting) startBackend();
+  showMainWindow();
+  backendRecoveryInFlight = false;
+}
+
+function startBackendWatchdog() {
+  clearInterval(backendWatchdogTimer);
+  backendWatchdogTimer = setInterval(() => {
+    if (!backendProcess || backendRecoveryInFlight || isQuitting) return;
+    const timeout = backendTimeoutMs(state.backend, lastRecordingDurationMs);
+    if (!timeout || Date.now() - backendStateEnteredAt <= timeout) return;
+    recoverUnresponsiveBackend(`${state.backend}-timeout`).catch((error) => {
+      backendRecoveryInFlight = false;
+      updateState("error", `Automatic recovery failed: ${error.message}`);
+      showMainWindow();
+    });
+  }, 5_000);
 }
 
 function handleBackendLine(line) {
@@ -599,8 +776,19 @@ function handleBackendEvent(event) {
 }
 
 function updateState(backend, message) {
+  if (backend !== state.backend) {
+    const now = Date.now();
+    if (state.backend === "recording" && backend !== "recording") {
+      lastRecordingDurationMs = state.recordingStartedAt
+        ? Math.max(0, now - state.recordingStartedAt)
+        : 0;
+    }
+    backendStateEnteredAt = now;
+    recordRuntimeHealth("state", { from: state.backend, to: backend });
+  }
   state.backend = backend;
   state.message = message;
+  if (backend === "ready") backendRestartAttempts = 0;
   if (message) addLog(message, backend === "error" ? "error" : "info", false);
   broadcastState();
   rebuildTrayMenu();
@@ -618,11 +806,23 @@ function addLog(message, level = "info", broadcast = true) {
 
 function broadcastState() {
   const snapshot = publicState();
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("parrot:state", snapshot);
+  sendWindowState(mainWindow, snapshot);
+  sendWindowState(overlayWindow, snapshot);
+}
+
+function sendWindowState(window, snapshot) {
+  if (
+    !window ||
+    window.isDestroyed() ||
+    window.webContents.isDestroyed()
+  ) {
+    return;
   }
-  if (overlayWindow && !overlayWindow.isDestroyed()) {
-    overlayWindow.webContents.send("parrot:state", snapshot);
+  try {
+    window.webContents.send("parrot:state", snapshot);
+  } catch {
+    // A renderer may disappear between the liveness check and IPC send. Its
+    // recovery listener will rebuild it without affecting audio capture.
   }
 }
 
@@ -755,6 +955,8 @@ function quitApplication() {
   if (isQuitting) return;
   isQuitting = true;
   clearTimeout(draftSaveTimer);
+  clearTimeout(backendRestartTimer);
+  clearInterval(backendWatchdogTimer);
   if (state.userData.recoveryDraft) saveUserData();
   stopBackend().finally(() => app.quit());
 }
@@ -824,7 +1026,9 @@ if (!hasLock) {
     createTray();
     createMainWindow();
     createOverlayWindow();
+    recordRuntimeHealth("app-ready", { version: app.getVersion() });
     startBackend();
+    startBackendWatchdog();
   });
 }
 
@@ -834,4 +1038,6 @@ app.on("window-all-closed", () => {
 });
 app.on("before-quit", () => {
   isQuitting = true;
+  clearTimeout(backendRestartTimer);
+  clearInterval(backendWatchdogTimer);
 });

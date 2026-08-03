@@ -80,6 +80,7 @@ const STATE_COPY = {
   formatting: "Cleaning up",
   pasting: "Pasting",
   setup: "Installing",
+  recovering: "Recovering",
   stopping: "Stopping",
   stopped: "Stopped",
   error: "Needs attention",
@@ -392,6 +393,9 @@ function render(nextState) {
   elements.copyButton.disabled = !transcript;
   elements.pasteLastButton.disabled = !nextState.transcript;
   elements.cancelButton.disabled = backend !== "recording";
+  elements.handsFreeButton.disabled = !["ready", "recording"].includes(backend);
+  elements.pasteLastButton.disabled =
+    !nextState.transcript || backend !== "ready";
   elements.handsFreeButton.setAttribute(
     "aria-label",
     nextState.handsFree ? "Finish hands-free dictation" : "Start hands-free dictation",

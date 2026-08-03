@@ -7,7 +7,8 @@ const test = require("node:test");
 const { _electron: electron } = require("playwright");
 
 const projectRoot = path.resolve(__dirname, "..");
-const electronExecutable = require("electron");
+const packagedExecutable = process.env.PARROT_E2E_EXECUTABLE;
+const electronExecutable = packagedExecutable || require("electron");
 
 async function mainWindow(app) {
   const deadline = Date.now() + 10000;
@@ -41,7 +42,7 @@ test(
     const app = await electron.launch({
       executablePath: electronExecutable,
       args: [
-        ".",
+        ...(packagedExecutable ? [] : ["."]),
         "--ui-only",
         "--e2e",
         `--user-data-dir=${userDataDirectory}`,

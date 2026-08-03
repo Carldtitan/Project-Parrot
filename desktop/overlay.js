@@ -8,6 +8,7 @@ const STATUS_COPY = {
   processing: ["Transcribing", "Finishing the full recording on this PC."],
   formatting: ["Cleaning up", "Applying corrections, vocabulary, and structure."],
   pasting: ["Pasting", "Sending your text back to the focused app."],
+  recovering: ["Recovering", "Restarting the local speech engine."],
   ready: ["Done", "Your dictation is saved in local history."],
 };
 

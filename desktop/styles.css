@@ -307,6 +307,7 @@ button:disabled {
 .status-dot.formatting,
 .status-dot.pasting,
 .status-dot.setup,
+.status-dot.recovering,
 .status-dot.stopping {
   background: var(--warning);
 }

@@ -24,7 +24,7 @@ use clap::Parser;
 
 use crate::{
     audio::Recorder,
-    cleaner::OllamaCleaner,
+    cleaner::{deterministic_cleanup, OllamaCleaner},
     config::{AppConfig, Args},
     foreground::active_window_title,
     hotkeys::{HotkeyBindings, HotkeyEvent, HotkeyListener},
@@ -140,13 +140,23 @@ fn main() -> Result<()> {
                     continue;
                 }
                 active_window = active_window_title();
-                recording_started = Some(start_recording(
+                recording_started = match start_recording(
                     &stt,
                     &mut recorder,
                     &config,
                     &mut audio_forwarder,
                     false,
-                )?);
+                ) {
+                    Ok(started) => Some(started),
+                    Err(error) => {
+                        log(&format!("Could not start microphone capture: {error:#}"));
+                        emit_status(
+                            "error",
+                            "Parrot could not open the microphone. Check the selected input device, then try again.",
+                        );
+                        None
+                    }
+                };
                 warning_sent = false;
             }
             HotkeyEvent::ToggleHandsFree => {
@@ -182,13 +192,25 @@ fn main() -> Result<()> {
                     hands_free = true;
                     emit_mode(true);
                     active_window = active_window_title();
-                    recording_started = Some(start_recording(
+                    recording_started = match start_recording(
                         &stt,
                         &mut recorder,
                         &config,
                         &mut audio_forwarder,
                         true,
-                    )?);
+                    ) {
+                        Ok(started) => Some(started),
+                        Err(error) => {
+                            hands_free = false;
+                            emit_mode(false);
+                            log(&format!("Could not start microphone capture: {error:#}"));
+                            emit_status(
+                                "error",
+                                "Parrot could not open the microphone. Check the selected input device, then try again.",
+                            );
+                            None
+                        }
+                    };
                     warning_sent = false;
                 }
             }
@@ -426,7 +448,7 @@ fn process_final_text(
                     "unavailable",
                     "The optional formatter is unavailable. Local cleanup is still active.",
                 );
-                prepared.text.clone()
+                deterministic_cleanup(&prepared.text, prepared.developer_context)
             });
         log(&format!(
             "Formatted ({:.1}s): {}",
@@ -436,28 +458,52 @@ fn process_final_text(
         clean
     } else {
         log("Optional formatter is unavailable; using deterministic local cleanup.");
-        prepared.text
+        deterministic_cleanup(&prepared.text, prepared.developer_context)
     };
     let clean = intelligence.finalize(&clean);
 
     log("Pasting into focused app...");
     emit_status("pasting", "Pasting into the focused app...");
     emit_final(&clean, duration_seconds, prepared.developer_context);
-    inserter.paste(&clean)?;
-    log("Done.");
-    emit_status(
-        "ready",
-        "Done. Your previous dictation is ready to recover.",
-    );
+    match inserter.paste(&clean) {
+        Ok(()) => {
+            log("Done.");
+            emit_status(
+                "ready",
+                "Done. Your previous dictation is ready to recover.",
+            );
+        }
+        Err(error) => {
+            log(&format!(
+                "Automatic paste failed; the completed dictation was preserved: {error:#}"
+            ));
+            emit_status(
+                "ready",
+                "Dictation saved, but the target app rejected automatic paste. Use Paste previous to try again.",
+            );
+        }
+    }
     Ok(clean)
 }
 
 fn paste_recovered(inserter: &TextInserter, text: &str) -> Result<()> {
     log("Pasting recovered dictation...");
     emit_status("pasting", "Pasting the previous dictation...");
-    inserter.paste(text)?;
-    emit_repaste(text);
-    emit_status("ready", "Previous dictation pasted.");
+    match inserter.paste(text) {
+        Ok(()) => {
+            emit_repaste(text);
+            emit_status("ready", "Previous dictation pasted.");
+        }
+        Err(error) => {
+            log(&format!(
+                "Could not paste the recovered dictation: {error:#}"
+            ));
+            emit_status(
+                "ready",
+                "Paste failed, but your previous dictation is still safe in Parrot.",
+            );
+        }
+    }
     Ok(())
 }
 

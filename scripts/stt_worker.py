@@ -3,7 +3,6 @@ import base64
 from difflib import SequenceMatcher
 import json
 import re
-import struct
 import sys
 import threading
 import time
@@ -33,8 +32,10 @@ def decode_f32le(payload):
     raw = base64.b64decode(payload)
     if len(raw) % 4 != 0:
         raise ValueError("audio payload length is not a multiple of 4 bytes")
-    count = len(raw) // 4
-    return struct.unpack("<" + ("f" * count), raw)
+    # Keep streaming audio in dense float32 arrays. Expanding every sample into
+    # a Python float used roughly eight times more memory and made long
+    # dictations vulnerable to paging or an out-of-memory crash.
+    return np.frombuffer(raw, dtype="<f4").astype(np.float32, copy=True)
 
 
 def load_parakeet(threads):
@@ -264,11 +265,33 @@ def transcribe_final(engine, model, audio, sample_rate):
     return text.strip(), chunk_count, used_tail_rescue
 
 
-def live_window(buffer, sample_rate, max_seconds):
+def join_audio_chunks(chunks):
+    if not chunks:
+        return np.asarray([], dtype=np.float32)
+    if len(chunks) == 1:
+        return np.asarray(chunks[0], dtype=np.float32).copy()
+    return np.concatenate(chunks).astype(np.float32, copy=False)
+
+
+def live_window(chunks, total_samples, sample_rate, max_seconds):
     max_samples = int(sample_rate * max_seconds)
-    if len(buffer) <= max_samples:
-        return np.asarray(buffer, dtype=np.float32), False
-    return np.asarray(buffer[-max_samples:], dtype=np.float32), True
+    if total_samples <= max_samples:
+        return join_audio_chunks(chunks), False
+
+    remaining = max_samples
+    tail = []
+    for chunk in reversed(chunks):
+        if remaining <= 0:
+            break
+        chunk = np.asarray(chunk, dtype=np.float32)
+        if chunk.size <= remaining:
+            tail.append(chunk)
+            remaining -= chunk.size
+        else:
+            tail.append(chunk[-remaining:])
+            remaining = 0
+    tail.reverse()
+    return join_audio_chunks(tail), True
 
 
 def next_live_sample_target(
@@ -557,6 +580,7 @@ def main():
     )
 
     buffer = []
+    buffered_samples = 0
     recording = False
     next_live_at_samples = 0
     session_id = 0
@@ -679,6 +703,7 @@ def main():
 
                 if message_type == "start":
                     buffer = []
+                    buffered_samples = 0
                     recording = True
                     next_live_at_samples = int(sample_rate * 0.7)
                     with work_ready:
@@ -691,16 +716,19 @@ def main():
                     if not recording:
                         continue
                     sample_rate = int(message.get("sample_rate", sample_rate))
-                    buffer.extend(decode_f32le(message["samples"]))
-                    enough_audio = len(buffer) >= next_live_at_samples
+                    chunk = decode_f32le(message["samples"])
+                    buffer.append(chunk)
+                    buffered_samples += int(chunk.size)
+                    enough_audio = buffered_samples >= next_live_at_samples
                     if enough_audio:
                         window, is_rolling = live_window(
                             buffer,
+                            buffered_samples,
                             sample_rate,
                             args.live_window_seconds,
                         )
                         next_live_at_samples = next_live_sample_target(
-                            len(buffer),
+                            buffered_samples,
                             sample_rate,
                             args.update_interval,
                             0.0,
@@ -722,9 +750,11 @@ def main():
                     recording = False
                     if "samples" in message:
                         sample_rate = int(message.get("sample_rate", sample_rate))
-                        audio = np.asarray(decode_f32le(message["samples"]), dtype=np.float32)
+                        audio = decode_f32le(message["samples"])
                     else:
-                        audio = np.asarray(buffer, dtype=np.float32)
+                        audio = join_audio_chunks(buffer)
+                    buffer = []
+                    buffered_samples = 0
                     with work_ready:
                         pending_final = (session_id, audio, sample_rate)
                         work_ready.notify()
@@ -732,6 +762,7 @@ def main():
                 elif message_type == "cancel":
                     recording = False
                     buffer = []
+                    buffered_samples = 0
                     with work_ready:
                         session_id += 1
                         pending_live = None

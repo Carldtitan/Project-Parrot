@@ -178,11 +178,16 @@ fn main() {
                 ) {
                     Ok(started) => Some(started),
                     Err(error) => {
-                        log(&format!("Could not start microphone capture: {error:#}"));
-                        emit_status(
-                            "error",
-                            "Parrot could not open the microphone. Check the selected input device, then try again.",
-                        );
+                        let msg = error.to_string();
+                        log(&format!("Microphone error: {error:#}"));
+                        let user_msg = if msg.contains("permission") {
+                            "Microphone access denied. Check system sound settings and app permissions."
+                        } else if msg.contains("in use") || msg.contains("busy") {
+                            "Microphone is in use by another app. Close it and try again."
+                        } else {
+                            "Microphone error. Check the selected input device in settings, then try again."
+                        };
+                        emit_status("error", user_msg);
                         None
                     }
                 };
@@ -512,9 +517,20 @@ fn process_final_text(
     log("Pasting into focused app...");
     emit_status("pasting", "Pasting into the focused app...");
     emit_final(&clean, duration_seconds, prepared.developer_context);
+
+    let word_count = clean.split_whitespace().count();
+    let wps = if duration_seconds > 0.0 {
+        word_count as f32 / duration_seconds
+    } else {
+        0.0
+    };
+
     match inserter.paste(&clean) {
         Ok(()) => {
-            log("Done.");
+            log(&format!(
+                "Done. {} words in {:.1}s ({:.1} wps)",
+                word_count, duration_seconds, wps
+            ));
             emit_status(
                 "ready",
                 "Done. Your previous dictation is ready to recover.",
@@ -722,3 +738,4 @@ pub fn workspace_root() -> PathBuf {
     }
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
+

@@ -573,6 +573,8 @@ fn paste_recovered(inserter: &TextInserter, text: &str) -> Result<()> {
 fn start_formatter_warmup(cleaner: OllamaCleaner) -> Arc<AtomicBool> {
     let ready = Arc::new(AtomicBool::new(false));
     let thread_ready = Arc::clone(&ready);
+    let cleaner_keepalive = cleaner.clone();
+
     thread::Builder::new()
         .name("parrot-formatter-warmup".to_string())
         .spawn(move || {
@@ -602,6 +604,18 @@ fn start_formatter_warmup(cleaner: OllamaCleaner) -> Arc<AtomicBool> {
             }
         })
         .ok();
+
+    thread::Builder::new()
+        .name("parrot-formatter-keepalive".to_string())
+        .spawn(move || {
+            thread::sleep(Duration::from_secs(30));
+            loop {
+                thread::sleep(Duration::from_secs(120));
+                let _ = cleaner_keepalive.warmup();
+            }
+        })
+        .ok();
+
     ready
 }
 

@@ -9,6 +9,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     SampleFormat, Stream,
 };
+use rubato::{Resampler, SincFixedIn};
 
 pub struct Recorder {
     sample_rate: u32,
@@ -285,7 +286,44 @@ fn resample_linear(input: &[f32], input_rate: u32, output_rate: u32) -> Vec<f32>
     if input.is_empty() {
         return Vec::new();
     }
+    if input_rate == output_rate {
+        return input.to_vec();
+    }
 
+    let ratio = output_rate as f64 / input_rate as f64;
+    let output_len = (input.len() as f64 * ratio).ceil() as usize;
+
+    match SincFixedIn::new(
+        ratio,
+        2.0,
+        rubato::SincInterpolationParameters {
+            sinc_len: 256,
+            f_cutoff: 0.95,
+            interpolation: rubato::SincInterpolationType::Linear,
+            oversampling_factor: 256,
+            window: rubato::WindowFunction::BlackmanHarris2,
+        },
+        input.len(),
+        1,
+    ) {
+        Ok(mut resampler) => {
+            let input_frames = vec![input.to_vec()];
+            match resampler.process(&input_frames, None) {
+                Ok(output_frames) => {
+                    if output_frames.len() > 0 && output_frames[0].len() > 0 {
+                        output_frames[0][..output_len.min(output_frames[0].len())].to_vec()
+                    } else {
+                        vec![0.0; output_len]
+                    }
+                }
+                Err(_) => fallback_resample(input, input_rate, output_rate),
+            }
+        }
+        Err(_) => fallback_resample(input, input_rate, output_rate),
+    }
+}
+
+fn fallback_resample(input: &[f32], input_rate: u32, output_rate: u32) -> Vec<f32> {
     let output_len = (input.len() as u64 * output_rate as u64 / input_rate as u64) as usize;
     let ratio = input_rate as f64 / output_rate as f64;
     let mut output = Vec::with_capacity(output_len);

@@ -242,7 +242,7 @@ impl SttWorker {
             "samples": STANDARD.encode(bytes),
         }))?;
         let audio_seconds = samples.len() as f32 / self.sample_rate as f32;
-        let timeout = Duration::from_secs_f32((30.0 + audio_seconds * 0.4).clamp(60.0, 600.0));
+        let timeout = Duration::from_secs_f32((10.0 + audio_seconds * 0.6).clamp(5.0, 120.0));
         loop {
             match self.events.recv_timeout(timeout) {
                 Ok(WorkerEvent::Final(text)) => return Ok(text),

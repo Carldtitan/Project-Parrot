@@ -38,9 +38,15 @@ const RELEASE_TAIL_SILENCE_WINDOW: Duration = Duration::from_millis(300);
 const RELEASE_TAIL_MAXIMUM: Duration = Duration::from_millis(1_600);
 const RELEASE_TAIL_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
-fn main() -> Result<()> {
+fn main() {
     let args = Args::parse();
-    let config = AppConfig::from_args(args)?;
+    let config = match AppConfig::from_args(args) {
+        Ok(c) => c,
+        Err(error) => {
+            eprintln!("Configuration error: {error:#}");
+            std::process::exit(1);
+        }
+    };
 
     log("Project Parrot is running.");
     log(&format!(
@@ -65,7 +71,13 @@ fn main() -> Result<()> {
     let started = Instant::now();
     log("Loading and warming STT model...");
     emit_status("starting", "Loading the local speech model...");
-    let stt = SttWorker::start(&config).context("failed to start STT")?;
+    let stt = match SttWorker::start(&config).context("failed to start STT") {
+        Ok(s) => s,
+        Err(error) => {
+            eprintln!("Fatal startup error: {error:#}");
+            std::process::exit(1);
+        }
+    };
     log(&format!(
         "STT model ready in {:.1}s.",
         started.elapsed().as_secs_f32()
@@ -78,8 +90,13 @@ fn main() -> Result<()> {
     let formatter_ready = start_formatter_warmup(cleaner.clone());
     let intelligence = TextIntelligence::from_path(config.personalization_path.as_deref());
     let inserter = TextInserter::new(config.restore_clipboard);
-    let mut recorder =
-        Recorder::new(config.sample_rate).context("failed to initialize recorder")?;
+    let mut recorder = match Recorder::new(config.sample_rate).context("failed to initialize recorder") {
+        Ok(r) => r,
+        Err(error) => {
+            eprintln!("Fatal startup error: {error:#}");
+            std::process::exit(1);
+        }
+    };
     let mut audio_forwarder: Option<thread::JoinHandle<()>> = None;
     let mut recording_started: Option<Instant> = None;
     let mut active_window = String::new();
@@ -87,14 +104,26 @@ fn main() -> Result<()> {
     let mut hands_free = false;
     let mut last_transcript = String::new();
 
-    let bindings = HotkeyBindings::parse(
+    let bindings = match HotkeyBindings::parse(
         &config.push_to_talk_shortcut,
         &config.hands_free_shortcut,
         &config.cancel_shortcut,
         &config.paste_last_shortcut,
-    )?;
+    ) {
+        Ok(b) => b,
+        Err(error) => {
+            eprintln!("Fatal startup error: {error:#}");
+            std::process::exit(1);
+        }
+    };
     let (tx, rx) = mpsc::channel();
-    let _listener = HotkeyListener::start(tx.clone(), bindings)?;
+    let _listener = match HotkeyListener::start(tx.clone(), bindings) {
+        Ok(l) => l,
+        Err(error) => {
+            eprintln!("Fatal startup error: {error:#}");
+            std::process::exit(1);
+        }
+    };
     if config.control_stdin {
         start_control_listener(tx);
     }
@@ -163,7 +192,7 @@ fn main() -> Result<()> {
                 if recorder.is_recording() && hands_free {
                     hands_free = false;
                     emit_mode(false);
-                    let result = finish_recording(
+                    match finish_recording(
                         &stt,
                         &mut recorder,
                         &config,
@@ -173,9 +202,16 @@ fn main() -> Result<()> {
                         &intelligence,
                         &inserter,
                         &active_window,
-                    )?;
-                    if let Some(text) = result {
-                        last_transcript = text;
+                    ) {
+                        Ok(result) => {
+                            if let Some(text) = result {
+                                last_transcript = text;
+                            }
+                        }
+                        Err(error) => {
+                            log(&format!("Error finishing recording: {error:#}"));
+                            emit_status("error", "Could not complete transcription. Try again.");
+                        }
                     }
                     recording_started = None;
                 } else if recorder.is_recording() {
@@ -218,7 +254,7 @@ fn main() -> Result<()> {
                 if !recorder.is_recording() || hands_free {
                     continue;
                 }
-                let result = finish_recording(
+                match finish_recording(
                     &stt,
                     &mut recorder,
                     &config,
@@ -228,9 +264,16 @@ fn main() -> Result<()> {
                     &intelligence,
                     &inserter,
                     &active_window,
-                )?;
-                if let Some(text) = result {
-                    last_transcript = text;
+                ) {
+                    Ok(result) => {
+                        if let Some(text) = result {
+                            last_transcript = text;
+                        }
+                    }
+                    Err(error) => {
+                        log(&format!("Error finishing recording: {error:#}"));
+                        emit_status("error", "Could not complete transcription. Try again.");
+                    }
                 }
                 recording_started = None;
             }
@@ -238,7 +281,9 @@ fn main() -> Result<()> {
                 hands_free = false;
                 emit_mode(false);
                 if recorder.is_recording() {
-                    cancel_recording(&stt, &mut recorder, &mut audio_forwarder)?;
+                    if let Err(error) = cancel_recording(&stt, &mut recorder, &mut audio_forwarder) {
+                        log(&format!("Error during cancel: {error:#}"));
+                    }
                 }
                 recording_started = None;
                 warning_sent = false;
@@ -247,14 +292,18 @@ fn main() -> Result<()> {
                 if last_transcript.is_empty() {
                     emit_status("ready", "There is no previous dictation to paste yet.");
                 } else {
-                    paste_recovered(&inserter, &last_transcript)?;
+                    if let Err(error) = paste_recovered(&inserter, &last_transcript) {
+                        log(&format!("Error pasting text: {error:#}"));
+                    }
                 }
             }
             HotkeyEvent::PasteText(text) => {
                 let text = text.trim();
                 if !text.is_empty() {
-                    paste_recovered(&inserter, text)?;
-                    last_transcript = text.to_string();
+                    match paste_recovered(&inserter, text) {
+                        Ok(_) => last_transcript = text.to_string(),
+                        Err(error) => log(&format!("Error pasting text: {error:#}")),
+                    }
                 }
             }
             HotkeyEvent::Quit => {
@@ -271,8 +320,6 @@ fn main() -> Result<()> {
             }
         }
     }
-
-    Ok(())
 }
 
 fn start_recording(

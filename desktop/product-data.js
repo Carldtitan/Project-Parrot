@@ -115,7 +115,13 @@ function learnFromTranscript(entries, text) {
   const byKey = new Map(
     sanitizeLearnedWords(entries).map((entry) => [entry.key, { ...entry }]),
   );
-  const words = String(text || "").match(/[A-Za-z][A-Za-z0-9_-]{3,}/g) || [];
+  const input = String(text || "");
+  if (input.includes("://") || input.includes(".com") || input.includes(".io") || input.includes("linkedin") || input.includes("github")) {
+    return [...byKey.values()]
+      .sort((left, right) => right.count - left.count || left.key.localeCompare(right.key))
+      .slice(0, MAX_DICTIONARY);
+  }
+  const words = input.match(/[A-Za-z][A-Za-z0-9_-]{3,}/g) || [];
   const seenThisTranscript = new Set();
   for (const written of words) {
     const key = written.toLocaleLowerCase();

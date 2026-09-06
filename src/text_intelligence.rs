@@ -70,12 +70,13 @@ impl TextIntelligence {
         if self.cleanup_fillers {
             text = remove_fillers(&text);
         }
-        text = apply_spoken_structure(&text);
-        if developer_context || contains_developer_command(&text) {
+        if developer_context {
             text = apply_developer_syntax(&text);
+        } else {
+            text = apply_spoken_structure(&text);
         }
         text = self.apply_vocabulary(&text);
-        if self.format_lists {
+        if self.format_lists && !developer_context {
             text = format_spoken_lists(&text);
         }
         text = normalize_spacing(&text);
@@ -88,7 +89,7 @@ impl TextIntelligence {
     }
 
     pub fn finalize(&self, text: &str) -> String {
-        normalize_spacing(&self.apply_vocabulary(text))
+        normalize_spacing(text)
     }
 
     fn expand_snippet(&self, raw: &str) -> Option<String> {
@@ -161,24 +162,6 @@ fn is_developer_window(title: &str) -> bool {
     .any(|name| title.contains(name))
 }
 
-fn contains_developer_command(text: &str) -> bool {
-    let text = text.to_ascii_lowercase();
-    [
-        "camel case",
-        "pascal case",
-        "snake case",
-        "kebab case",
-        "open brace",
-        "close brace",
-        "open bracket",
-        "close bracket",
-        "dot py",
-        "dot js",
-        "dot ts",
-    ]
-    .iter()
-    .any(|phrase| text.contains(phrase))
-}
 
 fn remove_fillers(text: &str) -> String {
     let fillers =
@@ -189,13 +172,10 @@ fn remove_fillers(text: &str) -> String {
 fn apply_spoken_structure(text: &str) -> String {
     let mut result = text.to_string();
     let replacements = [
-        (r"(?i)\bnew paragraph\b", "\n\n"),
-        (r"(?i)\bnew line\b", "\n"),
-        (r"(?i)\bquestion mark\b", "?"),
-        (r"(?i)\bexclamation (?:mark|point)\b", "!"),
-        (r"(?i)\bcomma\b", ","),
-        (r"(?i)\bsemicolon\b", ";"),
-        (r"(?i)\bcolon\b", ":"),
+        (r"(?i)(?:^|\s)new paragraph(?:\s|$)", " \n\n "),
+        (r"(?i)(?:^|\s)new line(?:\s|$)", " \n "),
+        (r"(?i)(?:^|\s)question mark(?:\s|$)", " ? "),
+        (r"(?i)(?:^|\s)exclamation (?:mark|point)(?:\s|$)", " ! "),
     ];
     for (pattern, replacement) in replacements {
         let regex = Regex::new(pattern).expect("spoken structure regex is valid");

@@ -402,33 +402,37 @@ def collapse_live_duplicate(text):
     words = str(text or "").split()
     if len(words) < 12:
         return str(text or "").strip()
-    keys = [normalized_token(word) for word in words]
-    best = None
 
-    for second_start in range(6, len(words) - 5):
-        for first_start in range(max(0, second_start - 20), second_start - 5):
-            max_length = min(
-                16,
-                second_start - first_start,
-                len(words) - second_start,
-            )
-            for length in range(max_length, 5, -1):
-                gap = second_start - (first_start + length)
-                if gap < 0 or gap > 3:
-                    continue
-                matches = sum(
-                    equivalent_token(left, right)
-                    for left, right in zip(
-                        keys[first_start : first_start + length],
-                        keys[second_start : second_start + length],
-                    )
-                )
-                if matches / length < 0.80:
-                    continue
-                candidate = (length, -gap, first_start, second_start)
-                if best is None or candidate > best:
-                    best = candidate
+    best = None
+    checked_pairs = 0
+    max_checks = 150
+
+    for second_start in range(len(words) - 10, max(6, len(words) - 50), -1):
+        if checked_pairs >= max_checks:
+            break
+
+        for first_start in range(max(0, second_start - 12), second_start - 5):
+            checked_pairs += 1
+            if checked_pairs >= max_checks:
                 break
+
+            gap = second_start - (first_start + 7)
+            if gap < 0 or gap > 2:
+                continue
+
+            matches = sum(
+                equivalent_token(
+                    normalized_token(words[i]),
+                    normalized_token(words[second_start + (i - first_start)]),
+                )
+                for i in range(first_start, min(first_start + 8, second_start))
+            )
+            if matches >= 6:
+                best = (8, -gap, first_start, second_start)
+                break
+
+        if best:
+            break
 
     if best is None:
         return str(text or "").strip()

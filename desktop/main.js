@@ -33,6 +33,9 @@ const OVERLAY_BOTTOM_GAP = { idle: 6, active: 28 };
 
 let mainWindow;
 let overlayWindow;
+let overlayMode = "active";
+let overlayDisplayId;
+let overlayFollowTimer;
 let tray;
 let backendProcess;
 let forceKillTimer;
@@ -249,7 +252,10 @@ function createOverlayWindow() {
   overlayWindow.setIgnoreMouseEvents(true);
   overlayWindow.loadFile(path.join(__dirname, "overlay.html"));
   installWindowRecovery(overlayWindow, "overlay");
+  clearInterval(overlayFollowTimer);
+  overlayFollowTimer = setInterval(followCursorAcrossDisplays, 350);
   overlayWindow.on("closed", () => {
+    clearInterval(overlayFollowTimer);
     overlayWindow = undefined;
   });
 }
@@ -303,11 +309,21 @@ function positionOverlay(mode = "active") {
   const { x, y, width, height } = display.workArea;
   const [overlayWidth, overlayHeight] = overlayWindow.getSize();
   const gap = OVERLAY_BOTTOM_GAP[mode] ?? OVERLAY_BOTTOM_GAP.active;
+  overlayDisplayId = display.id;
   overlayWindow.setPosition(
     Math.round(x + (width - overlayWidth) / 2),
     Math.round(y + height - overlayHeight - gap),
     false,
   );
+}
+
+function followCursorAcrossDisplays() {
+  if (!overlayWindow || overlayWindow.isDestroyed() || !overlayWindow.isVisible()) {
+    return;
+  }
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  if (display.id === overlayDisplayId) return;
+  positionOverlay(overlayMode);
 }
 
 function createTray() {
@@ -856,6 +872,7 @@ function showOverlay(mode = "active") {
   clearTimeout(hideOverlayTimer);
   if (!overlayWindow || overlayWindow.isDestroyed()) return;
   const [width, height] = OVERLAY_SIZES[mode] || OVERLAY_SIZES.active;
+  overlayMode = mode;
   overlayWindow.setSize(width, height);
   positionOverlay(mode);
   overlayWindow.showInactive();

@@ -28,6 +28,8 @@ const {
   restartDelayMs,
 } = require("./runtime-health");
 
+const OVERLAY_SIZES = { idle: [128, 40], active: [420, 66] };
+
 let mainWindow;
 let overlayWindow;
 let tray;
@@ -233,7 +235,6 @@ function createOverlayWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     focusable: false,
-    resizable: false,
     hasShadow: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -543,14 +544,13 @@ function sendBackendControl(message) {
           ? "Hands-free preview is active."
           : "Hands-free preview finished.",
       );
-      if (state.handsFree) showOverlay();
-      else scheduleOverlayHide();
+      showOverlay(state.handsFree ? "active" : "idle");
     } else if (message.type === "cancel") {
       state.handsFree = false;
       state.recordingStartedAt = null;
       state.partial = "";
       updateState("ready", "Cancelled. Nothing was pasted.");
-      scheduleOverlayHide();
+      showOverlay("idle");
     } else if (message.type === "paste" && message.text) {
       clipboard.writeText(String(message.text));
       state.transcript = String(message.text);
@@ -767,10 +767,10 @@ function handleBackendEvent(event) {
   }
   updateState(event.state || "starting", event.message || "");
   if (["recording", "processing", "formatting", "pasting"].includes(event.state)) {
-    showOverlay();
+    showOverlay("active");
   } else if (event.state === "ready") {
-    scheduleOverlayHide();
-  } else if (["error", "stopped"].includes(event.state)) {
+    showOverlay("idle");
+  } else {
     hideOverlay();
   }
 }
@@ -850,20 +850,17 @@ function publicState() {
   };
 }
 
-function showOverlay() {
+function showOverlay(mode = "active") {
   clearTimeout(hideOverlayTimer);
   if (!overlayWindow || overlayWindow.isDestroyed()) return;
+  const [width, height] = OVERLAY_SIZES[mode] || OVERLAY_SIZES.active;
+  overlayWindow.setSize(width, height);
   positionOverlay();
   overlayWindow.showInactive();
   // Windows demotes a topmost window when another app raises its own, so the
   // level has to be reclaimed on every show rather than set once at creation.
   overlayWindow.setAlwaysOnTop(true, "screen-saver");
   overlayWindow.moveTop();
-}
-
-function scheduleOverlayHide() {
-  clearTimeout(hideOverlayTimer);
-  hideOverlayTimer = setTimeout(hideOverlay, 1100);
 }
 
 function hideOverlay() {

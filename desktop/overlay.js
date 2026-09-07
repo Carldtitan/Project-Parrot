@@ -21,6 +21,7 @@ function render(state) {
       ? state.partial
       : state.message || fallback;
   modeElement.textContent = state.handsFree ? "HANDS-FREE" : "PUSH TO TALK";
+  document.body.classList.toggle("idle", state.backend === "ready");
   signalElement.classList.toggle("working", state.backend !== "ready");
   signalElement.classList.toggle("recording", state.backend === "recording");
 }

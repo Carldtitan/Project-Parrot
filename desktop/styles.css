@@ -1625,3 +1625,36 @@ textarea:focus {
     transition-duration: 0.01ms !important;
   }
 }
+
+.overlay-page.idle .overlay-bar {
+  width: 112px;
+  height: 28px;
+  margin: 6px auto;
+  padding: 0;
+  gap: 0;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(7, 35, 28, 0.3);
+}
+
+.overlay-page.idle .overlay-copy,
+.overlay-page.idle .overlay-mode {
+  display: none;
+}
+
+.overlay-page.idle .overlay-signal {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.overlay-page.idle .overlay-signal img {
+  width: 19px;
+  height: 19px;
+}
+
+.overlay-page.idle .overlay-signal::after {
+  display: none;
+}

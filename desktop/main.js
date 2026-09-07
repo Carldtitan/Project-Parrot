@@ -243,7 +243,7 @@ function createOverlayWindow() {
     },
   });
 
-  overlayWindow.setAlwaysOnTop(true, "floating");
+  overlayWindow.setAlwaysOnTop(true, "screen-saver");
   overlayWindow.setIgnoreMouseEvents(true);
   overlayWindow.loadFile(path.join(__dirname, "overlay.html"));
   installWindowRecovery(overlayWindow, "overlay");
@@ -855,6 +855,10 @@ function showOverlay() {
   if (!overlayWindow || overlayWindow.isDestroyed()) return;
   positionOverlay();
   overlayWindow.showInactive();
+  // Windows demotes a topmost window when another app raises its own, so the
+  // level has to be reclaimed on every show rather than set once at creation.
+  overlayWindow.setAlwaysOnTop(true, "screen-saver");
+  overlayWindow.moveTop();
 }
 
 function scheduleOverlayHide() {

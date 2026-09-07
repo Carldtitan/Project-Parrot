@@ -1627,15 +1627,17 @@ textarea:focus {
 }
 
 .overlay-page.idle .overlay-bar {
-  width: 112px;
-  height: 28px;
-  margin: 6px auto;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   padding: 0;
   gap: 0;
   grid-template-columns: 1fr;
   justify-items: center;
-  border-radius: 999px;
-  box-shadow: 0 8px 22px rgba(7, 35, 28, 0.3);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .overlay-page.idle .overlay-copy,
@@ -1644,15 +1646,15 @@ textarea:focus {
 }
 
 .overlay-page.idle .overlay-signal {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
+  width: 30px;
+  height: 30px;
+  border-radius: 0;
   background: transparent;
 }
 
 .overlay-page.idle .overlay-signal img {
-  width: 19px;
-  height: 19px;
+  width: 30px;
+  height: 30px;
 }
 
 .overlay-page.idle .overlay-signal::after {

@@ -28,7 +28,8 @@ const {
   restartDelayMs,
 } = require("./runtime-health");
 
-const OVERLAY_SIZES = { idle: [128, 40], active: [420, 66] };
+const OVERLAY_SIZES = { idle: [40, 34], active: [420, 66] };
+const OVERLAY_BOTTOM_GAP = { idle: 6, active: 28 };
 
 let mainWindow;
 let overlayWindow;
@@ -296,14 +297,15 @@ function installWindowRecovery(window, label) {
   });
 }
 
-function positionOverlay() {
+function positionOverlay(mode = "active") {
   if (!overlayWindow) return;
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const { x, y, width, height } = display.workArea;
   const [overlayWidth, overlayHeight] = overlayWindow.getSize();
+  const gap = OVERLAY_BOTTOM_GAP[mode] ?? OVERLAY_BOTTOM_GAP.active;
   overlayWindow.setPosition(
     Math.round(x + (width - overlayWidth) / 2),
-    Math.round(y + height - overlayHeight - 28),
+    Math.round(y + height - overlayHeight - gap),
     false,
   );
 }
@@ -855,7 +857,7 @@ function showOverlay(mode = "active") {
   if (!overlayWindow || overlayWindow.isDestroyed()) return;
   const [width, height] = OVERLAY_SIZES[mode] || OVERLAY_SIZES.active;
   overlayWindow.setSize(width, height);
-  positionOverlay();
+  positionOverlay(mode);
   overlayWindow.showInactive();
   // Windows demotes a topmost window when another app raises its own, so the
   // level has to be reclaimed on every show rather than set once at creation.

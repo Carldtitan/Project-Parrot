@@ -90,13 +90,14 @@ fn main() {
     let formatter_ready = start_formatter_warmup(cleaner.clone());
     let intelligence = TextIntelligence::from_path(config.personalization_path.as_deref());
     let inserter = TextInserter::new(config.restore_clipboard);
-    let mut recorder = match Recorder::new(config.sample_rate).context("failed to initialize recorder") {
-        Ok(r) => r,
-        Err(error) => {
-            eprintln!("Fatal startup error: {error:#}");
-            std::process::exit(1);
-        }
-    };
+    let mut recorder =
+        match Recorder::new(config.sample_rate).context("failed to initialize recorder") {
+            Ok(r) => r,
+            Err(error) => {
+                eprintln!("Fatal startup error: {error:#}");
+                std::process::exit(1);
+            }
+        };
     let mut audio_forwarder: Option<thread::JoinHandle<()>> = None;
     let mut recording_started: Option<Instant> = None;
     let mut active_window = String::new();
@@ -286,7 +287,8 @@ fn main() {
                 hands_free = false;
                 emit_mode(false);
                 if recorder.is_recording() {
-                    if let Err(error) = cancel_recording(&stt, &mut recorder, &mut audio_forwarder) {
+                    if let Err(error) = cancel_recording(&stt, &mut recorder, &mut audio_forwarder)
+                    {
                         log(&format!("Error during cancel: {error:#}"));
                     }
                 }
@@ -752,4 +754,3 @@ pub fn workspace_root() -> PathBuf {
     }
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
-

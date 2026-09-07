@@ -162,7 +162,6 @@ fn is_developer_window(title: &str) -> bool {
     .any(|name| title.contains(name))
 }
 
-
 fn remove_fillers(text: &str) -> String {
     let fillers =
         Regex::new(r"(?i)\b(?:um+|uh+|erm+|hmm+)\b[\s,]*").expect("filler regex is valid");
